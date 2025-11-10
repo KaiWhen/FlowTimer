@@ -19,7 +19,7 @@ namespace FlowTimer {
         public const string TimerFileFilter = "Json files (*.json)|*.json";
         public const string BeepFileFilter = "WAV files (*.wav)|*.wav";
 
-        public static readonly string Folder = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "/flowtimer/";
+        public static readonly string Folder = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "/flowtimerext/";
         public static readonly string Beeps = Folder + "beeps/";
         public static readonly string SettingsFile = Folder + "settings.json";
 
@@ -129,7 +129,7 @@ namespace FlowTimer {
             MainForm.RemoveKeyControls();
 
             int buildVersion = Assembly.GetExecutingAssembly().GetName().Version.Major;
-            MainForm.Text += " (Build " + buildVersion + ")";
+            MainForm.Text += " (Build ext-" + buildVersion + ")";
         }
 
         public static void RemoveKeyControls(this Control control) {
@@ -235,7 +235,7 @@ namespace FlowTimer {
             MainForm.PictureBoxPin.Image = PinSheet[pin ? 1 : 0];
         }
 
-        public static void UpdatePCM(double[] offsets, uint interval, uint numBeeps, bool garbageCollect = true) {
+        public static void UpdatePCM(List<double> offsets, uint interval, uint numBeeps, bool garbageCollect = true) {
             // try to force garbage collection on the old pcm data
             if(garbageCollect) GC.Collect();
             double maxOffset = offsets.Max();
@@ -304,7 +304,7 @@ namespace FlowTimer {
                 MainForm.Invoke(inv);
 
                 SDL_Delay(resolution);
-            } while(currentTime > 0.0);
+            } while(currentTime > -100.0);
 
             inv = delegate {
                 StopTimer(true);

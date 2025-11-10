@@ -1,12 +1,13 @@
 ﻿namespace FlowTimer {
 
-    public enum TimerError {
-
+    public enum TimerError
+    {
         NoError,
         InvalidOffset,
         InvalidInterval,
         InvalidNumBeeps,
         InvalidFrame,
         InvalidFPS,
+        InvalidSecFail
     }
 }

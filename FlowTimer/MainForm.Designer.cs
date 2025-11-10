@@ -67,6 +67,7 @@
             this.LabelFPS3 = new System.Windows.Forms.Label();
             this.LabelName3 = new System.Windows.Forms.Label();
             this.LabelFrame3 = new System.Windows.Forms.Label();
+            this.LabelSecFail = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)(this.PictureBoxPin)).BeginInit();
             this.TabControl.SuspendLayout();
             this.TabPageFixedOffset.SuspendLayout();
@@ -152,7 +153,7 @@
             // 
             // PictureBoxPin
             // 
-            this.PictureBoxPin.Location = new System.Drawing.Point(478, 4);
+            this.PictureBoxPin.Location = new System.Drawing.Point(590, 4);
             this.PictureBoxPin.Name = "PictureBoxPin";
             this.PictureBoxPin.Size = new System.Drawing.Size(16, 16);
             this.PictureBoxPin.TabIndex = 33;
@@ -203,7 +204,7 @@
             this.TabControl.Location = new System.Drawing.Point(-3, 0);
             this.TabControl.Name = "TabControl";
             this.TabControl.SelectedIndex = 0;
-            this.TabControl.Size = new System.Drawing.Size(536, 250);
+            this.TabControl.Size = new System.Drawing.Size(620, 250);
             this.TabControl.TabIndex = 34;
             // 
             // TabPageFixedOffset
@@ -404,10 +405,11 @@
             this.TabPageIGTTracking.Controls.Add(this.LabelFPS3);
             this.TabPageIGTTracking.Controls.Add(this.LabelName3);
             this.TabPageIGTTracking.Controls.Add(this.LabelFrame3);
+            this.TabPageIGTTracking.Controls.Add(this.LabelSecFail);
             this.TabPageIGTTracking.Location = new System.Drawing.Point(4, 22);
             this.TabPageIGTTracking.Name = "TabPageIGTTracking";
             this.TabPageIGTTracking.Padding = new System.Windows.Forms.Padding(3);
-            this.TabPageIGTTracking.Size = new System.Drawing.Size(528, 224);
+            this.TabPageIGTTracking.Size = new System.Drawing.Size(612, 224);
             this.TabPageIGTTracking.TabIndex = 2;
             this.TabPageIGTTracking.Text = "IGT Tracking";
             // 
@@ -446,7 +448,8 @@
             // 
             // ButtonUndoPlay
             // 
-            this.ButtonUndoPlay.Location = new System.Drawing.Point(407, 114);
+            int gameOffset = 85;
+            this.ButtonUndoPlay.Location = new System.Drawing.Point(407+gameOffset, 114);
             this.ButtonUndoPlay.Name = "ButtonUndoPlay";
             this.ButtonUndoPlay.Size = new System.Drawing.Size(80, 22);
             this.ButtonUndoPlay.TabIndex = 14;
@@ -458,7 +461,7 @@
             // 
             this.ComboBoxGame.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.ComboBoxGame.FormattingEnabled = true;
-            this.ComboBoxGame.Location = new System.Drawing.Point(407, 35);
+            this.ComboBoxGame.Location = new System.Drawing.Point(407+gameOffset, 35);
             this.ComboBoxGame.Name = "ComboBoxGame";
             this.ComboBoxGame.Size = new System.Drawing.Size(80, 21);
             this.ComboBoxGame.TabIndex = 11;
@@ -476,7 +479,7 @@
             "30.0",
             "25.0",
             "15.0"});
-            this.ComboBoxFPS3.Location = new System.Drawing.Point(407, 62);
+            this.ComboBoxFPS3.Location = new System.Drawing.Point(407+gameOffset, 62);
             this.ComboBoxFPS3.Name = "ComboBoxFPS3";
             this.ComboBoxFPS3.Size = new System.Drawing.Size(80, 21);
             this.ComboBoxFPS3.TabIndex = 11;
@@ -484,7 +487,7 @@
             // 
             // ButtonPlay
             // 
-            this.ButtonPlay.Location = new System.Drawing.Point(407, 88);
+            this.ButtonPlay.Location = new System.Drawing.Point(407+gameOffset, 88);
             this.ButtonPlay.Name = "ButtonPlay";
             this.ButtonPlay.Size = new System.Drawing.Size(80, 22);
             this.ButtonPlay.TabIndex = 10;
@@ -494,8 +497,9 @@
             // 
             // LabelBeeps3
             // 
+            int offset = 26;
             this.LabelBeeps3.AutoSize = true;
-            this.LabelBeeps3.Location = new System.Drawing.Point(401, 144);
+            this.LabelBeeps3.Location = new System.Drawing.Point(401+offset, 144);
             this.LabelBeeps3.Name = "LabelBeeps3";
             this.LabelBeeps3.Size = new System.Drawing.Size(37, 13);
             this.LabelBeeps3.TabIndex = 9;
@@ -504,7 +508,7 @@
             // LabelInterval3
             // 
             this.LabelInterval3.AutoSize = true;
-            this.LabelInterval3.Location = new System.Drawing.Point(346, 144);
+            this.LabelInterval3.Location = new System.Drawing.Point(346+offset, 144);
             this.LabelInterval3.Name = "LabelInterval3";
             this.LabelInterval3.Size = new System.Drawing.Size(42, 13);
             this.LabelInterval3.TabIndex = 7;
@@ -513,7 +517,7 @@
             // LabelGame
             // 
             this.LabelGame.AutoSize = true;
-            this.LabelGame.Location = new System.Drawing.Point(368, 38);
+            this.LabelGame.Location = new System.Drawing.Point(368+gameOffset, 38);
             this.LabelGame.Name = "LabelGame";
             this.LabelGame.Size = new System.Drawing.Size(38, 13);
             this.LabelGame.TabIndex = 3;
@@ -522,7 +526,7 @@
             // LabelOffset3
             // 
             this.LabelOffset3.AutoSize = true;
-            this.LabelOffset3.Location = new System.Drawing.Point(276, 144);
+            this.LabelOffset3.Location = new System.Drawing.Point(276+offset, 144);
             this.LabelOffset3.Name = "LabelOffset3";
             this.LabelOffset3.Size = new System.Drawing.Size(35, 13);
             this.LabelOffset3.TabIndex = 5;
@@ -531,7 +535,7 @@
             // LabelFPS3
             // 
             this.LabelFPS3.AutoSize = true;
-            this.LabelFPS3.Location = new System.Drawing.Point(368, 65);
+            this.LabelFPS3.Location = new System.Drawing.Point(368+gameOffset, 65);
             this.LabelFPS3.Name = "LabelFPS3";
             this.LabelFPS3.Size = new System.Drawing.Size(30, 13);
             this.LabelFPS3.TabIndex = 3;
@@ -540,7 +544,7 @@
             // LabelName3
             // 
             this.LabelName3.AutoSize = true;
-            this.LabelName3.Location = new System.Drawing.Point(161, 144);
+            this.LabelName3.Location = new System.Drawing.Point(161+offset, 144);
             this.LabelName3.Name = "LabelName3";
             this.LabelName3.Size = new System.Drawing.Size(35, 13);
             this.LabelName3.TabIndex = 1;
@@ -549,17 +553,26 @@
             // LabelFrame3
             // 
             this.LabelFrame3.AutoSize = true;
-            this.LabelFrame3.Location = new System.Drawing.Point(231, 144);
+            this.LabelFrame3.Location = new System.Drawing.Point(231+offset, 144);
             this.LabelFrame3.Name = "LabelFrame3";
             this.LabelFrame3.Size = new System.Drawing.Size(36, 13);
             this.LabelFrame3.TabIndex = 1;
             this.LabelFrame3.Text = "Frame";
+            //
+            // LabelSecFail
+            //
+            this.LabelSecFail.AutoSize = true;
+            this.LabelSecFail.Location = new System.Drawing.Point(447+offset, 144);
+            this.LabelSecFail.Name = "LabelSecFail";
+            this.LabelSecFail.Size = new System.Drawing.Size(35, 13);
+            this.LabelSecFail.TabIndex = 1;
+            this.LabelSecFail.Text = "SecFails";
             // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(500, 228);
+            this.ClientSize = new System.Drawing.Size(624, 228);
             this.Controls.Add(this.TabControl);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
             this.Name = "MainForm";
@@ -623,5 +636,6 @@
         public System.Windows.Forms.Button ButtonLoadTimers3;
         public System.Windows.Forms.ComboBox ComboBoxGame;
         public System.Windows.Forms.Label LabelGame;
+        public System.Windows.Forms.Label LabelSecFail;
     }
 }

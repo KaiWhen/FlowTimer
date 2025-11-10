@@ -18,6 +18,8 @@ namespace FlowTimer {
 
         public bool Playing;
         public double CurrentOffset;
+        public double CurrentIGTSecond;
+        public HashSet<int> IGTSecondFailures;
         public double Adjusted;
 
         public List<IGTDelayer> Delayers;
@@ -26,6 +28,19 @@ namespace FlowTimer {
 
         public List<IGTTimer> Timers;
         public IGTTimer SelectedTimer;
+
+        public FileSystemWatcher TargetIGTWatcher;
+        public static readonly string TargetIGTFolder = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "RedExtTool"
+        );
+        public static readonly string TargetIGTFile = Path.Combine(TargetIGTFolder, "curr_igt.json");
+
+        public class TargetIGTInfo
+        {
+            public double Frame { get; set; }
+            public string IGTSeconds { get; set; }
+        }
 
         public IGTTracking(TabPage tab, params Control[] copyControls) : base(tab, null, copyControls) {
             ComboBoxGame = FlowTimer.MainForm.ComboBoxGame;
@@ -66,6 +81,7 @@ namespace FlowTimer {
             foreach(IGTDelayer delayer in Delayers)
                 delayer.Count.Text = "0";
             Adjusted = 0;
+            InitializeTargetIGTWatcher();
         }
 
         public override void OnVisualTimerStart() {
@@ -79,6 +95,7 @@ namespace FlowTimer {
             foreach(IGTDelayer delayer in Delayers)
                 delayer.Count.Text = "0";
             Adjusted = 0;
+            DisposeWatcher();
         }
 
         public override void OnKeyEvent(Keys key) {
@@ -114,6 +131,22 @@ namespace FlowTimer {
                 MoveSelectedTimerIndex(-1);
             } else if(FlowTimer.Settings.Down.IsPressed(key)) {
                 MoveSelectedTimerIndex(+1);
+            } else if(FlowTimer.Settings.TargetAdd.IsPressed(key)) {
+                int changed = int.Parse(SelectedTimer.TextBoxFrame.Text) + 1;
+                if (changed > 59) changed %= 60;
+                SelectedTimer.TextBoxFrame.Text = changed.ToString();
+            } else if(FlowTimer.Settings.TargetSub.IsPressed(key)) {
+                int changed = int.Parse(SelectedTimer.TextBoxFrame.Text) - 1;
+                if (changed < 0) changed += 60;
+                SelectedTimer.TextBoxFrame.Text = changed.ToString();
+            } else if (FlowTimer.Settings.TargetAdd5.IsPressed(key)) {
+                int changed = int.Parse(SelectedTimer.TextBoxFrame.Text) + 5;
+                if (changed > 59) changed %= 60;
+                SelectedTimer.TextBoxFrame.Text = changed.ToString();
+            } else if (FlowTimer.Settings.TargetSub5.IsPressed(key)) {
+                int changed = int.Parse(SelectedTimer.TextBoxFrame.Text) - 5;
+                if (changed < 0) changed += 60;
+                SelectedTimer.TextBoxFrame.Text = changed.ToString();
             }
         }
 
@@ -214,9 +247,28 @@ namespace FlowTimer {
             Delayers.Add(new IGTDelayer(Delayers.Count, name, delay));
         }
 
-        public double TimerCallbackFn(double start) {
+        public double TimerCallbackFn(double start)
+        {
+            double elapsedMs = Win32.GetTime() - start;
+
+            double totalDelayMs = 0;
+            IGTTimerInfo info;
+            if (SelectedTimer != null && SelectedTimer.GetTimerInfo(out info) == TimerError.NoError)
+            {
+                totalDelayMs = info.Offset;
+                totalDelayMs += Adjusted;
+
+
+                double realTimeGameMs = elapsedMs - totalDelayMs;
+                double igtFrames = realTimeGameMs * info.FPS / 1000.0;
+
+                double igtSeconds = igtFrames / 60.0;
+                CurrentIGTSecond = igtSeconds % 60;
+            }
             OnDataChange();
-            return Math.Max((Win32.GetTime() - start) / 1000.0, 0.001);
+            // return Math.Max((Win32.GetTime() - start) / 1000.0, 0.001);
+            // if (CurrentIGTSecond < 0.0) CurrentIGTSecond = 0.0001;
+            return CurrentIGTSecond;
         }
 
         public void OnDataChange() {
@@ -227,22 +279,99 @@ namespace FlowTimer {
             }
         }
 
-        public void Play() {
-            if(!FlowTimer.IsTimerRunning) return;
+        private HashSet<int> GetIGTSecondFailures()
+        {
+            return new HashSet<int> { 4, 5, 7, 9 };
+        }
+
+        public void InitializeTargetIGTWatcher()
+        {
+            if (!File.Exists(TargetIGTFile))
+            {
+                return;
+            }
+
+            TargetIGTWatcher = new FileSystemWatcher();
+            TargetIGTWatcher.Path = TargetIGTFolder;
+            TargetIGTWatcher.Filter = "curr_igt.json";
+            TargetIGTWatcher.NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size;
+
+            TargetIGTWatcher.Changed += OnTargetIGTFileChanged;
+            TargetIGTWatcher.EnableRaisingEvents = true;
+        }
+
+        private void OnTargetIGTFileChanged(object sender, FileSystemEventArgs e)
+        {
+            if (Tab.InvokeRequired)
+            {
+                Tab.Invoke(new Action(() => OnTargetIGTFileChanged(sender, e)));
+                return;
+            }
+
+            try
+            {
+                if (SelectedTimer == null) return;
+
+                string timerName = SelectedTimer.TextBoxName.Text.Trim().ToLower();
+                if (timerName != "nidoext") return;
+
+                string json = File.ReadAllText(TargetIGTFile);
+                var targetIGTContent =  JsonConvert.DeserializeObject<TargetIGTInfo>(json);
+                if (targetIGTContent.IGTSeconds != "" || targetIGTContent.IGTSeconds != null)
+                {
+                    SelectedTimer.TextBoxSecFail.Text = targetIGTContent.IGTSeconds.Trim();
+                }
+                SelectedTimer.TextBoxFrame.Text = targetIGTContent.Frame.ToString();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error reading Second Fails file: {ex.Message}");
+            }
+        }
+        
+        public void DisposeWatcher() {
+            if (TargetIGTWatcher != null) {
+                TargetIGTWatcher.EnableRaisingEvents = false;
+                TargetIGTWatcher.Dispose();
+            }
+        }
+
+        public void Play()
+        {
+            if (!FlowTimer.IsTimerRunning) return;
             IGTTimerInfo info;
             TimerError error = SelectedTimer.GetTimerInfo(out info);
-            if(error != TimerError.NoError) return;
+            if (error != TimerError.NoError) return;
             double now = Win32.GetTime();
             double offset = (info.Frame / info.FPS * 1000.0f) - (now - FlowTimer.TimerStart) + info.Offset + Adjusted;
-            while(offset - info.Interval * (info.NumBeeps - 1) < 0.0f)
+            while (offset - info.Interval * (info.NumBeeps - 1) < 0.0f)
                 offset += 60.0f / info.FPS * 1000.0f;
             double[] offsets = new double[10];
-            for(int i = 0; i < offsets.Length; ++i)
+            for (int i = 0; i < offsets.Length; ++i)
+            {
                 offsets[i] = offset + 60.0f / info.FPS * 1000.0f * i;
+            }
+
+            List<double> validOffsets = new List<double>();
+            var secFails = info.SecFails;
+            if (secFails != null)
+            {
+
+                foreach (var o in offsets)
+                {
+                    uint igtSec = (uint)((o / 1000.0 % 60) + CurrentIGTSecond);
+                    if (!secFails.Contains(igtSec)) validOffsets.Add(o);
+                }
+            }
+            else
+            {
+                validOffsets = offsets.ToList();
+            }
+
             FlowTimer.AudioContext.ClearQueuedAudio();
-            FlowTimer.UpdatePCM(offsets, info.Interval, info.NumBeeps, false);
+            FlowTimer.UpdatePCM(validOffsets, info.Interval, info.NumBeeps, false);
             FlowTimer.AudioContext.QueueAudio(FlowTimer.PCM);
-            CurrentOffset = (offsets[9] + now - FlowTimer.TimerStart) / 1000.0f;
+            CurrentOffset = (validOffsets[validOffsets.Count - 1] + now - FlowTimer.TimerStart) / 1000.0f;
             Playing = true;
             EnableControls(true, true);
         }
@@ -368,7 +497,7 @@ namespace FlowTimer {
             ClearAllTimers();
             for(int i = 0; i < file.Timers.Count; i++) {
                 JsonIGTTimer timer = file[i];
-                AddTimer(new IGTTimer(i, timer.Name, timer.Frame, timer.Offsets, timer.Interval, timer.NumBeeps));
+                AddTimer(new IGTTimer(i, timer.Name, timer.Frame, timer.Offsets, timer.Interval, timer.NumBeeps, timer.SecFails));
             }
 
             if(displayMessages) {
@@ -395,6 +524,7 @@ namespace FlowTimer {
                 Offsets = timer.TextBoxOffset.Text,
                 Interval = timer.TextBoxInterval.Text,
                 NumBeeps = timer.TextBoxNumBeeps.Text,
+                SecFails = timer.TextBoxSecFail.Text
             }));
         }
 
@@ -439,7 +569,8 @@ namespace FlowTimer {
                    timer1.Frame != timer2.Frame ||
                    timer1.Offsets != timer2.Offsets ||
                    timer1.Interval != timer2.Interval ||
-                   timer1.NumBeeps != timer2.NumBeeps) {
+                   timer1.NumBeeps != timer2.NumBeeps ||
+                   timer1.SecFails != timer2.SecFails) {
                     return true;
                 }
             }
@@ -456,55 +587,57 @@ namespace FlowTimer {
         public Button Plus;
 
         public const int Size = 26;
-
         public IGTDelayer(int index, string name, double delay) {
             Control.ControlCollection parent = FlowTimer.IGTTracking.Tab.Controls;
             int y = index * Size;
 
+            int offset = 8;
             Name = new Label();
             Name.Text = name + ":";
-            Name.SetBounds(161, 14 + y, 115, 13);
+            Name.SetBounds(161+offset, 14 + y, 115, 13);
             parent.Add(Name);
 
             Count = new TextBox();
             Count.Text = "0";
-            Count.SetBounds(277, 10 + y, 23, 20);
+            Count.SetBounds(277+offset, 10 + y, 23, 20);
             Count.TextAlign = HorizontalAlignment.Center;
             Count.Enabled = false;
             parent.Add(Count);
 
             Minus = new Button();
             Minus.Text = "-";
-            Minus.SetBounds(303, 9 + y, 22, 22);
+            Minus.SetBounds(303+offset, 9 + y, 22, 22);
             Minus.Click += (s, e) => { Count.Text = (int.Parse(Count.Text) - 1).ToString(); FlowTimer.IGTTracking.ChangeAudio(-delay); };
             parent.Add(Minus);
 
             Plus = new Button();
             Plus.Text = "+";
-            Plus.SetBounds(327, 9 + y, 22, 22);
+            Plus.SetBounds(327+offset, 9 + y, 22, 22);
             Plus.Click += (s, e) => { Count.Text = (int.Parse(Count.Text) + 1).ToString(); FlowTimer.IGTTracking.ChangeAudio(+delay); };
             parent.Add(Plus);
         }
     }
 
     public struct IGTTimerInfo {
-        public uint Frame;
+        public double Frame;
         public int Offset;
         public uint Interval;
         public uint NumBeeps;
         public double FPS;
+        public HashSet<uint> SecFails;
     }
 
     public class IGTTimer {
-        public const int X = 165;
+        public const int X = 190;
         public static int Y = 160;
-        public const int Size = 28;
+        public const int Size = 30;
 
         public TextBox TextBoxName;
         public TextBox TextBoxFrame;
         public TextBox TextBoxOffset;
         public TextBox TextBoxInterval;
         public TextBox TextBoxNumBeeps;
+        public TextBox TextBoxSecFail;
         public RadioButton RadioButton;
         public Button RemoveButton;
         public List<Control> Controls;
@@ -525,6 +658,7 @@ namespace FlowTimer {
                 TextBoxOffset.SetBounds(X + 115, yPosition, 65, 21);
                 TextBoxInterval.SetBounds(X + 185, yPosition, 50, 21);
                 TextBoxNumBeeps.SetBounds(X + 240, yPosition, 40, 21);
+                TextBoxSecFail.SetBounds(X + 285, yPosition, 60, 21);
 
                 RadioButton.SetBounds(X - 21, yPosition + 4, 14, 13);
 
@@ -533,7 +667,7 @@ namespace FlowTimer {
             }
         }
 
-        public IGTTimer(int index, string name = "Timer", string frame = "0", string offset = "0", string interval = "250", string numBeeps = "3") {
+        public IGTTimer(int index, string name = "Timer", string frame = "0", string offset = "0", string interval = "250", string numBeeps = "3", string secFails = "") {
             Controls = new List<Control>();
 
             TextBoxName = new TextBox();
@@ -555,6 +689,10 @@ namespace FlowTimer {
             TextBoxNumBeeps = new TextBox();
             TextBoxNumBeeps.Text = numBeeps;
             Controls.Add(TextBoxNumBeeps);
+
+            TextBoxSecFail = new TextBox();
+            TextBoxSecFail.Text = secFails;
+            Controls.Add(TextBoxSecFail);
 
             foreach(TextBox textbox in TextBoxes) {
                 textbox.Font = new Font(textbox.Font.FontFamily, 9.0f);
@@ -579,7 +717,7 @@ namespace FlowTimer {
         public TimerError GetTimerInfo(out IGTTimerInfo info) {
             info = new IGTTimerInfo();
 
-            if(!uint.TryParse(TextBoxFrame.Text, out info.Frame)) {
+            if(!double.TryParse(TextBoxFrame.Text, out info.Frame)) {
                 return TimerError.InvalidFrame;
             }
 
@@ -595,11 +733,12 @@ namespace FlowTimer {
                 return TimerError.InvalidNumBeeps;
             }
 
-            if(!double.TryParse(FlowTimer.IGTTracking.ComboBoxFPS.SelectedItem as string, out info.FPS)) {
+            if (!double.TryParse(FlowTimer.IGTTracking.ComboBoxFPS.SelectedItem as string, out info.FPS))
+            {
                 return TimerError.InvalidFPS;
             }
 
-            if(info.Frame >= ushort.MaxValue << 8) {
+            if(info.Frame >= ushort.MaxValue << 8 || info.Frame < 0.0) {
                 return TimerError.InvalidFrame;
             }
 
@@ -611,8 +750,34 @@ namespace FlowTimer {
                 return TimerError.InvalidInterval;
             }
 
-            if(info.NumBeeps >= ushort.MaxValue << 9) {
+            if (info.NumBeeps >= ushort.MaxValue << 9)
+            {
                 return TimerError.InvalidNumBeeps;
+            }
+
+            if (TextBoxSecFail.Text != "")
+            {
+                string[] secsStr = TextBoxSecFail.Text.Split('/');
+                uint[] secs = new uint[secsStr.Length];
+
+                for (int i = 0; i < secsStr.Length; i++)
+                {
+                    if (!uint.TryParse(secsStr[i], out secs[i]))
+                    {
+                        return TimerError.InvalidSecFail;
+                    }
+                }
+
+                Array.Sort(secs);
+                info.SecFails = secs.ToHashSet();
+
+                foreach (uint sec in info.SecFails)
+                {
+                    if (sec > 59)
+                    {
+                        return TimerError.InvalidSecFail;
+                    }
+                }
             }
 
             return TimerError.NoError;

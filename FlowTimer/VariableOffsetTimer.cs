@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Windows.Forms;
 using System.Threading;
+using System.Collections.Generic;
 
 namespace FlowTimer {
 
@@ -118,7 +119,7 @@ namespace FlowTimer {
             GetVariableInfo(out Info);
             double now = Win32.GetTime();
             double offset = (Info.Frame / Info.FPS * 1000.0f) - (now - FlowTimer.TimerStart) + Info.Offset + Adjusted;
-            FlowTimer.UpdatePCM(new double[] { offset }, Info.Interval, Info.NumBeeps, false);
+            FlowTimer.UpdatePCM(new List<double> { offset }, Info.Interval, Info.NumBeeps, false);
             FlowTimer.AudioContext.QueueAudio(FlowTimer.PCM);
             ButtonSubmit.Enabled = false;
             CurrentOffset = Info.Frame / Info.FPS + (Info.Offset + Adjusted) / 1000.0f;

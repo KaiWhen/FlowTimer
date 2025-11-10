@@ -138,7 +138,7 @@ namespace FlowTimer {
             List<Control> controls = new List<Control>() { FlowTimer.MainForm.ButtonStart, FlowTimer.MainForm.ButtonStop, };
 
             if(error == TimerError.NoError) {
-                FlowTimer.UpdatePCM(Array.ConvertAll(timerInfo.Offsets, x => (double) x), timerInfo.Interval, timerInfo.NumBeeps);
+                FlowTimer.UpdatePCM(Array.ConvertAll(timerInfo.Offsets, x => (double) x).ToList(), timerInfo.Interval, timerInfo.NumBeeps);
                 if(!FlowTimer.IsTimerRunning) FlowTimer.MainForm.LabelTimer.Text = (timerInfo.MaxOffset / 1000.0).ToFormattedString();
                 controls.ForEach(control => control.Enabled = true);
             } else {

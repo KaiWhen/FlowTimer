@@ -34,6 +34,10 @@ namespace FlowTimer {
             if(tab == 3) AddKeybindSetting("-   (5)", FlowTimer.Settings.Sub5);
             if(tab == 3) AddKeybindSetting("+  (6)", FlowTimer.Settings.Add6);
             if(tab == 3) AddKeybindSetting("-   (6)", FlowTimer.Settings.Sub6);
+            if(tab == 3) AddKeybindSetting("-Target", FlowTimer.Settings.TargetSub);
+            if(tab == 3) AddKeybindSetting("+Target", FlowTimer.Settings.TargetAdd);
+            if(tab == 3) AddKeybindSetting("-5Target", FlowTimer.Settings.TargetSub5);
+            if(tab == 3) AddKeybindSetting("+5Target", FlowTimer.Settings.TargetAdd5);
 
             LabelBeep.Top = SizeKeybinds + 14;
             ComboBoxBeep.Top = SizeKeybinds + 10;

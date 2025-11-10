@@ -23,6 +23,7 @@ namespace FlowTimer {
         public string Offsets;
         public string Interval;
         public string NumBeeps;
+        public string SecFails;
     }
 
     public class JsonIGTTimersFile {
