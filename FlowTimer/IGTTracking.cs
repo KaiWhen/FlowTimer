@@ -2,7 +2,6 @@
 using System.IO;
 using System.Windows.Forms;
 using System.Drawing;
-using System.Threading;
 using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
@@ -28,7 +27,7 @@ namespace FlowTimer {
 
         public List<IGTTimer> Timers;
         public IGTTimer SelectedTimer;
-
+        private readonly object timerLock = new object();
         public FileSystemWatcher TargetIGTWatcher;
         public static readonly string TargetIGTFolder = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
@@ -249,21 +248,23 @@ namespace FlowTimer {
 
         public double TimerCallbackFn(double start)
         {
-            double elapsedMs = Win32.GetTime() - start;
 
-            double totalDelayMs = 0;
-            IGTTimerInfo info;
-            if (SelectedTimer != null && SelectedTimer.GetTimerInfo(out info) == TimerError.NoError)
+            lock (timerLock)
             {
-                totalDelayMs = info.Offset;
-                totalDelayMs += Adjusted;
+                double elapsedMs = Win32.GetTime() - start;
 
+                IGTTimerInfo info;
+                if (SelectedTimer != null && SelectedTimer.GetTimerInfo(out info) == TimerError.NoError)
+                {
+                    double totalDelayMs = info.Offset;
+                    totalDelayMs += Adjusted;
 
-                double realTimeGameMs = elapsedMs - totalDelayMs;
-                double igtFrames = realTimeGameMs * info.FPS / 1000.0;
+                    double realTimeGameMs = elapsedMs - totalDelayMs;
+                    double igtFrames = realTimeGameMs * info.FPS / 1000.0;
 
-                double igtSeconds = igtFrames / 60.0;
-                CurrentIGTSecond = igtSeconds % 60;
+                    double igtSeconds = igtFrames / 60.0;
+                    CurrentIGTSecond = igtSeconds % 60;
+                }
             }
             OnDataChange();
             // return Math.Max((Win32.GetTime() - start) / 1000.0, 0.001);
@@ -272,16 +273,11 @@ namespace FlowTimer {
         }
 
         public void OnDataChange() {
-            double currentTime = double.Parse(FlowTimer.MainForm.LabelTimer.Text);
+            double currentTime = (Win32.GetTime() - FlowTimer.TimerStart) / 1000.0;
             if(Playing && CurrentOffset < currentTime) {
                 Playing = false;
                 EnableControls(true, false);
             }
-        }
-
-        private HashSet<int> GetIGTSecondFailures()
-        {
-            return new HashSet<int> { 4, 5, 7, 9 };
         }
 
         public void InitializeTargetIGTWatcher()
@@ -308,24 +304,27 @@ namespace FlowTimer {
                 return;
             }
 
-            try
+            lock (timerLock)
             {
-                if (SelectedTimer == null) return;
-
-                string timerName = SelectedTimer.TextBoxName.Text.Trim().ToLower();
-                if (timerName != "nidoext") return;
-
-                string json = File.ReadAllText(TargetIGTFile);
-                var targetIGTContent =  JsonConvert.DeserializeObject<TargetIGTInfo>(json);
-                if (targetIGTContent.IGTSeconds != "" || targetIGTContent.IGTSeconds != null)
+                try
                 {
-                    SelectedTimer.TextBoxSecFail.Text = targetIGTContent.IGTSeconds.Trim();
+                    if (SelectedTimer == null) return;
+
+                    string timerName = SelectedTimer.TextBoxName.Text.Trim().ToLower();
+                    if (timerName != "nidoext") return;
+
+                    string json = File.ReadAllText(TargetIGTFile);
+                    var targetIGTContent =  JsonConvert.DeserializeObject<TargetIGTInfo>(json);
+                    if (targetIGTContent.IGTSeconds != "" || targetIGTContent.IGTSeconds != null)
+                    {
+                        SelectedTimer.TextBoxSecFail.Text = targetIGTContent.IGTSeconds.Trim();
+                    }
+                    SelectedTimer.TextBoxFrame.Text = targetIGTContent.Frame.ToString();
                 }
-                SelectedTimer.TextBoxFrame.Text = targetIGTContent.Frame.ToString();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error reading Second Fails file: {ex.Message}");
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error reading Second Fails file: {ex.Message}");
+                }
             }
         }
         
@@ -348,15 +347,12 @@ namespace FlowTimer {
                 offset += 60.0f / info.FPS * 1000.0f;
             double[] offsets = new double[10];
             for (int i = 0; i < offsets.Length; ++i)
-            {
                 offsets[i] = offset + 60.0f / info.FPS * 1000.0f * i;
-            }
 
             List<double> validOffsets = new List<double>();
             var secFails = info.SecFails;
             if (secFails != null)
             {
-
                 foreach (var o in offsets)
                 {
                     uint igtSec = (uint)((o / 1000.0 % 60) + CurrentIGTSecond);
