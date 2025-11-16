@@ -10,7 +10,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Reflection;
 using static FlowTimer.Win32;
-using static FlowTimer.SDL;
+using static FlowTimer.MMDeviceAPI;
 
 namespace FlowTimer {
 
@@ -75,7 +75,8 @@ namespace FlowTimer {
             PinSheet = new SpriteSheet(new Bitmap(FileSystem.ReadPackedResourceStream("FlowTimer.Resources.pin.png")), 16, 16);
             Pin(Settings.Pinned);
 
-            AudioContext.GlobalInit();
+            AudioContext = new AudioContext();
+            AudioContext.StartAudioThread();
             ChangeBeepSound(Settings.Beep, false);
 
             TimerUpdateThread = new Thread(TimerUpdateCallback);
@@ -115,7 +116,6 @@ namespace FlowTimer {
             TimerUpdateThread.AbortIfAlive();
             AudioContext.ClearQueuedAudio();
             AudioContext.Destroy();
-            AudioContext.GlobalDestroy();
             File.WriteAllText(SettingsFile, JsonConvert.SerializeObject(Settings));
         }
 
@@ -129,7 +129,7 @@ namespace FlowTimer {
             MainForm.RemoveKeyControls();
 
             int buildVersion = Assembly.GetExecutingAssembly().GetName().Version.Major;
-            MainForm.Text += " (Build ext-" + buildVersion + ")";
+            MainForm.Text += " (Build ext-g-" + buildVersion + ")";
         }
 
         public static void RemoveKeyControls(this Control control) {
@@ -221,7 +221,7 @@ namespace FlowTimer {
         }
 
         public static void EnableControls(bool enabled) {
-            MainForm.ButtonSettings.Enabled = enabled;
+            //MainForm.ButtonSettings.Enabled = enabled;
         }
 
         public static void TogglePin() {
@@ -240,11 +240,11 @@ namespace FlowTimer {
             if(garbageCollect) GC.Collect();
             double maxOffset = offsets.Max();
 
-            PCM = new byte[((int) Math.Ceiling(maxOffset / 1000.0 * AudioContext.SampleRate)) * AudioContext.NumChannels * AudioContext.BytesPerSample + BeepSound.Length];
+            PCM = new byte[((int) Math.Ceiling(maxOffset / 1000.0 * AudioContext.Format.nSamplesPerSec)) * AudioContext.BytesPerSample + BeepSound.Length];
 
             foreach(double offset in offsets) {
                 for(int i = 0; i < numBeeps; i++) {
-                    int destOffset = (int) ((offset - i * interval) / 1000.0 * AudioContext.SampleRate) * AudioContext.NumChannels * 2;
+                    int destOffset = (int) ((offset - i * interval) / 1000.0 * AudioContext.Format.nSamplesPerSec) * AudioContext.BytesPerSample;
                     Array.Copy(BeepSound, 0, PCM, destOffset, BeepSound.Length);
                 }
             }
@@ -291,7 +291,7 @@ namespace FlowTimer {
         private static void TimerUpdateCallback() {
             Thread.CurrentThread.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
             Thread.CurrentThread.CurrentUICulture = System.Globalization.CultureInfo.InvariantCulture;
-            const uint resolution = 15;
+            const int resolution = 50;
 
             MethodInvoker inv;
             double currentTime = 0.0f;
@@ -303,7 +303,7 @@ namespace FlowTimer {
                 };
                 MainForm.Invoke(inv);
 
-                SDL_Delay(resolution);
+                Thread.Sleep(resolution);
             } while(currentTime > -100.0);
 
             inv = delegate {
@@ -340,15 +340,15 @@ namespace FlowTimer {
                 return false;
             }
 
-            SDL_AudioSpec audioSpec;
-            Wave.LoadWAV(filePath, out _, out audioSpec);
+            // TODO: Audio spec check
+            /*Wave.LoadWAV(filePath, out _, out audioSpec);
 
             if(audioSpec.format != AUDIO_S16LSB) {
                 if(displayMessages) {
                     MessageBox.Show("FlowTimer does not support this audio file (yet).", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
                 return false;
-            }
+            }*/
 
             File.Copy(filePath, Beeps + fileName);
             if(SettingsForm != null) SettingsForm.ComboBoxBeep.Items.Add(fileNameWithoutExtension);
@@ -357,11 +357,8 @@ namespace FlowTimer {
         }
 
         public static void ChangeBeepSound(string beepName, bool playSound = true) {
-            if(AudioContext != null) AudioContext.Destroy();
-
-            SDL_AudioSpec audioSpec;
-            Wave.LoadWAV(Beeps + beepName + ".wav", out BeepSoundUnadjusted, out audioSpec);
-            AudioContext = new AudioContext(audioSpec.freq, audioSpec.format, audioSpec.channels);
+            Wave.LoadWAV(Beeps + beepName + ".wav", out BeepSoundUnadjusted, out WAVEFORMATEX format);
+            BeepSoundUnadjusted = AudioContext.ResamplePCM(BeepSoundUnadjusted, format);
             AdjustBeepSoundVolume(Settings.Volume);
             CurrentTab.OnBeepSoundChange();
             Settings.Beep = beepName;
@@ -374,6 +371,7 @@ namespace FlowTimer {
         public static void AdjustBeepSoundVolume(int newVolume) {
             float vol = newVolume / 100.0f;
             BeepSound = new byte[BeepSoundUnadjusted.Length];
+
             for(int i = 0; i < BeepSound.Length; i += 2) {
                 short sample = (short) (BeepSoundUnadjusted[i] | (BeepSoundUnadjusted[i + 1] << 8));
                 float floatSample = sample;
@@ -386,6 +384,23 @@ namespace FlowTimer {
                 sample = (short) floatSample;
                 BeepSound[i] = (byte) (sample & 0xFF);
                 BeepSound[i + 1] = (byte) (sample >> 8);
+            }
+              
+            if(AudioContext.Format.wFormatTag == WAVE_FORMAT_IEEE_FLOAT || AudioContext.ExtensibleFormatTag == KSDATAFORMAT_SUBTYPE_IEEE_FLOAT) {
+                byte[] ieee = new byte[BeepSound.Length * 2];   
+                for(int i = 0; i < BeepSound.Length; i += 2) {
+                    short shortSample = (short) (BeepSound[i] | (BeepSound[i + 1] << 8));
+                    float floatSample = (float) shortSample / (float) short.MaxValue;
+                    if(floatSample < -1) floatSample = -1;
+                    if(floatSample > 1) floatSample = 1;
+                    byte[] bytes = BitConverter.GetBytes(floatSample);
+                    ieee[i * 2 + 0] = bytes[0];
+                    ieee[i * 2 + 1] = bytes[1];
+                    ieee[i * 2 + 2] = bytes[2];
+                    ieee[i * 2 + 3] = bytes[3];
+                }
+
+                BeepSound = ieee;
             }
 
             CurrentTab.OnBeepVolumeChange();

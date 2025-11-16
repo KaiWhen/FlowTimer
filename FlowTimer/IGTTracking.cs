@@ -2,6 +2,7 @@
 using System.IO;
 using System.Windows.Forms;
 using System.Drawing;
+using System.Threading;
 using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
@@ -246,9 +247,7 @@ namespace FlowTimer {
             Delayers.Add(new IGTDelayer(Delayers.Count, name, delay));
         }
 
-        public double TimerCallbackFn(double start)
-        {
-
+        public double TimerCallbackFn(double start) {
             lock (timerLock)
             {
                 double elapsedMs = Win32.GetTime() - start;
@@ -267,8 +266,6 @@ namespace FlowTimer {
                 }
             }
             OnDataChange();
-            // return Math.Max((Win32.GetTime() - start) / 1000.0, 0.001);
-            // if (CurrentIGTSecond < 0.0) CurrentIGTSecond = 0.0001;
             return CurrentIGTSecond;
         }
 
@@ -327,7 +324,7 @@ namespace FlowTimer {
                 }
             }
         }
-        
+
         public void DisposeWatcher() {
             if (TargetIGTWatcher != null) {
                 TargetIGTWatcher.EnableRaisingEvents = false;
@@ -335,18 +332,17 @@ namespace FlowTimer {
             }
         }
 
-        public void Play()
-        {
-            if (!FlowTimer.IsTimerRunning) return;
+        public void Play() {
+            if(!FlowTimer.IsTimerRunning) return;
             IGTTimerInfo info;
             TimerError error = SelectedTimer.GetTimerInfo(out info);
-            if (error != TimerError.NoError) return;
+            if(error != TimerError.NoError) return;
             double now = Win32.GetTime();
             double offset = (info.Frame / info.FPS * 1000.0f) - (now - FlowTimer.TimerStart) + info.Offset + Adjusted;
-            while (offset - info.Interval * (info.NumBeeps - 1) < 0.0f)
+            while(offset - info.Interval * (info.NumBeeps - 1) < 0.0f)
                 offset += 60.0f / info.FPS * 1000.0f;
             double[] offsets = new double[10];
-            for (int i = 0; i < offsets.Length; ++i)
+            for(int i = 0; i < offsets.Length; ++i)
                 offsets[i] = offset + 60.0f / info.FPS * 1000.0f * i;
 
             List<double> validOffsets = new List<double>();
@@ -567,6 +563,7 @@ namespace FlowTimer {
                    timer1.Interval != timer2.Interval ||
                    timer1.NumBeeps != timer2.NumBeeps ||
                    timer1.SecFails != timer2.SecFails) {
+                    
                     return true;
                 }
             }
@@ -583,6 +580,7 @@ namespace FlowTimer {
         public Button Plus;
 
         public const int Size = 26;
+
         public IGTDelayer(int index, string name, double delay) {
             Control.ControlCollection parent = FlowTimer.IGTTracking.Tab.Controls;
             int y = index * Size;
@@ -663,7 +661,7 @@ namespace FlowTimer {
             }
         }
 
-        public IGTTimer(int index, string name = "Timer", string frame = "0", string offset = "0", string interval = "250", string numBeeps = "3", string secFails = "") {
+         public IGTTimer(int index, string name = "Timer", string frame = "0", string offset = "0", string interval = "250", string numBeeps = "3", string secFails = "") {
             Controls = new List<Control>();
 
             TextBoxName = new TextBox();
@@ -729,8 +727,7 @@ namespace FlowTimer {
                 return TimerError.InvalidNumBeeps;
             }
 
-            if (!double.TryParse(FlowTimer.IGTTracking.ComboBoxFPS.SelectedItem as string, out info.FPS))
-            {
+            if(!double.TryParse(FlowTimer.IGTTracking.ComboBoxFPS.SelectedItem as string, out info.FPS)) {
                 return TimerError.InvalidFPS;
             }
 
@@ -746,12 +743,11 @@ namespace FlowTimer {
                 return TimerError.InvalidInterval;
             }
 
-            if (info.NumBeeps >= ushort.MaxValue << 9)
-            {
+            if(info.NumBeeps >= ushort.MaxValue << 9) {
                 return TimerError.InvalidNumBeeps;
             }
 
-            if (TextBoxSecFail.Text != "")
+             if (TextBoxSecFail.Text != "")
             {
                 string[] secsStr = TextBoxSecFail.Text.Split('/');
                 uint[] secs = new uint[secsStr.Length];
