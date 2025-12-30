@@ -311,7 +311,7 @@ namespace FlowTimer {
                     if (SelectedTimer == null) return;
 
                     string timerName = SelectedTimer.TextBoxName.Text.Trim().ToLower();
-                    if (timerName != "nidoext") return;
+                    if (timerName.ToLower() != "nidoext" && timerName.ToLower() != "surge") return;
 
                     string json = File.ReadAllText(TargetIGTFile);
                     var targetIGTContent =  JsonConvert.DeserializeObject<TargetIGTInfo>(json);
