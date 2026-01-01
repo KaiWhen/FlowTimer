@@ -68,6 +68,7 @@
             this.LabelName3 = new System.Windows.Forms.Label();
             this.LabelFrame3 = new System.Windows.Forms.Label();
             this.LabelSecFail = new System.Windows.Forms.Label();
+            this.CheckBoxGlobalHotkeys = new System.Windows.Forms.CheckBox();
             ((System.ComponentModel.ISupportInitialize)(this.PictureBoxPin)).BeginInit();
             this.TabControl.SuspendLayout();
             this.TabPageFixedOffset.SuspendLayout();
@@ -406,6 +407,7 @@
             this.TabPageIGTTracking.Controls.Add(this.LabelName3);
             this.TabPageIGTTracking.Controls.Add(this.LabelFrame3);
             this.TabPageIGTTracking.Controls.Add(this.LabelSecFail);
+            // this.TabPageIGTTracking.Controls.Add(this.CheckBoxGlobalHotkeys);
             this.TabPageIGTTracking.Location = new System.Drawing.Point(4, 22);
             this.TabPageIGTTracking.Name = "TabPageIGTTracking";
             this.TabPageIGTTracking.Padding = new System.Windows.Forms.Padding(3);
@@ -567,12 +569,24 @@
             this.LabelSecFail.Size = new System.Drawing.Size(35, 13);
             this.LabelSecFail.TabIndex = 1;
             this.LabelSecFail.Text = "SecFails";
+            //
+            // CheckBoxGlobalHotkeys
+            //
+            this.CheckBoxGlobalHotkeys.AutoSize = true;
+            this.CheckBoxGlobalHotkeys.Location = new System.Drawing.Point(490, 25);
+            this.CheckBoxGlobalHotkeys.Name = "CheckBoxGlobalHotkeys";
+            this.CheckBoxGlobalHotkeys.Size = new System.Drawing.Size(130, 17);
+            this.CheckBoxGlobalHotkeys.TabIndex = 36;
+            this.CheckBoxGlobalHotkeys.Text = "Global Hotkeys";
+            this.CheckBoxGlobalHotkeys.UseVisualStyleBackColor = true;
             // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(624, 228);
+            this.Controls.Add(CheckBoxGlobalHotkeys);
+            CheckBoxGlobalHotkeys.BringToFront();
             this.Controls.Add(this.TabControl);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
             this.Name = "MainForm";
@@ -637,5 +651,6 @@
         public System.Windows.Forms.ComboBox ComboBoxGame;
         public System.Windows.Forms.Label LabelGame;
         public System.Windows.Forms.Label LabelSecFail;
+        public System.Windows.Forms.CheckBox CheckBoxGlobalHotkeys;
     }
 }

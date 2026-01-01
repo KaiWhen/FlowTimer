@@ -10,6 +10,7 @@ namespace FlowTimer {
             FlowTimer.SetMainForm(this);
             FlowTimer.RegisterTabs(TabPageFixedOffset, TabPageVariableOffset, TabPageIGTTracking);
             FlowTimer.Init();
+            FlowTimer.Settings.CheckBoxGlobalHotkeysEnabled = CheckBoxGlobalHotkeys;
         }
 
         private void MainForm_FormClosing(object sender, FormClosingEventArgs e) {
