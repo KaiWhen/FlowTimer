@@ -31,11 +31,33 @@ namespace FlowTimer {
         public Hotkey TargetSub5 = new Hotkey(Keys.None, Keys.None, false);
         public KeyMethod KeyMethod = KeyMethod.OnPress;
         public string Beep = "ping1";
+        public string BeepFail = "click1";
         public bool Pinned = false;
         public string LastLoadedTimers = null;
         public string LastLoadedIGTTimers = null;
         public bool AutoUpdate = false;
         public int Volume = 100;
+
+        public bool GlobalHotkeysEnabled = true;
+
+        [JsonIgnore]
+        private CheckBox _CheckBoxGlobalHotkeysEnabled;
+        [JsonIgnore]
+        public CheckBox CheckBoxGlobalHotkeysEnabled
+        {
+            get { return _CheckBoxGlobalHotkeysEnabled; }
+            set
+            {
+                _CheckBoxGlobalHotkeysEnabled = value;
+                _CheckBoxGlobalHotkeysEnabled.Checked = GlobalHotkeysEnabled;
+                _CheckBoxGlobalHotkeysEnabled.Click += CheckBoxGlobalHotkeysEnabled_CheckChanged;
+            }
+        }
+
+        private void CheckBoxGlobalHotkeysEnabled_CheckChanged(object sender, EventArgs args)
+        {
+            GlobalHotkeysEnabled = _CheckBoxGlobalHotkeysEnabled.Checked;
+        }
 
         [JsonIgnore]
         private CheckBox _CheckBoxAutoUpdate;
@@ -112,7 +134,7 @@ namespace FlowTimer {
         }
 
         public bool IsPressed(Keys key) {
-            return (Primary.Key == key || Secondary.Key == key) && (Form.ActiveForm == FlowTimer.MainForm || Global);
+            return (Primary.Key == key || Secondary.Key == key) && (Form.ActiveForm == FlowTimer.MainForm || Global && FlowTimer.Settings.GlobalHotkeysEnabled);
         }
 
         private void CheckBoxGlobal_CheckChanged(object sender, EventArgs args) {

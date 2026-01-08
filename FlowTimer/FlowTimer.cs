@@ -44,6 +44,8 @@ namespace FlowTimer {
         public static AudioContext AudioContext;
         public static byte[] BeepSound;
         public static byte[] BeepSoundUnadjusted;
+        public static byte[] BeepSoundFail;
+        public static byte[] BeepSoundFailUnadjusted;
         public static byte[] PCM;
         public static double MaxOffset;
 
@@ -77,7 +79,7 @@ namespace FlowTimer {
 
             AudioContext = new AudioContext();
             AudioContext.StartAudioThread();
-            ChangeBeepSound(Settings.Beep, false);
+            ChangeBeepSound(Settings.Beep, Settings.BeepFail, false);
 
             TimerUpdateThread = new Thread(TimerUpdateCallback);
 
@@ -250,6 +252,19 @@ namespace FlowTimer {
             }
         }
 
+        public static void UpdatePCMCustom(List<double> offsets, uint interval, uint numBeeps, byte[] beep)
+        {
+            foreach (double offset in offsets) {
+                for (int i = 0; i < numBeeps; i++) {
+                    int destOffset = (int) ((offset - i * interval) / 1000.0 * AudioContext.Format.nSamplesPerSec) * AudioContext.BytesPerSample;
+                    int maxWrite = Math.Min(beep.Length, PCM.Length - destOffset);
+                    for (int b = 0; b < maxWrite; b++) {
+                        PCM[destOffset + b] += beep[b];
+                    }
+                }
+            }
+        }
+
         public static void StartTimer() {
             AudioContext.ClearQueuedAudio();
 
@@ -356,24 +371,32 @@ namespace FlowTimer {
             return true;
         }
 
-        public static void ChangeBeepSound(string beepName, bool playSound = true) {
+        public static void ChangeBeepSound(string beepName, string beepFailName, bool playSound = true) {
             Wave.LoadWAV(Beeps + beepName + ".wav", out BeepSoundUnadjusted, out WAVEFORMATEX format);
             BeepSoundUnadjusted = AudioContext.ResamplePCM(BeepSoundUnadjusted, format);
-            AdjustBeepSoundVolume(Settings.Volume);
+            BeepSound = AdjustBeepSoundVolume(BeepSoundUnadjusted, Settings.Volume);
+            if (!string.IsNullOrEmpty(beepFailName) && beepFailName != "None") {
+                Wave.LoadWAV(Beeps + beepFailName + ".wav", out BeepSoundFailUnadjusted, out WAVEFORMATEX format2);
+                BeepSoundFailUnadjusted = AudioContext.ResamplePCM(BeepSoundFailUnadjusted, format2);
+                BeepSoundFail = AdjustBeepSoundVolume(BeepSoundFailUnadjusted, Settings.Volume);
+            }
+            else {
+                BeepSoundFail = null;
+            }
             CurrentTab.OnBeepSoundChange();
             Settings.Beep = beepName;
+            Settings.BeepFail = (beepFailName == "None") ? null : beepFailName;
 
             if(playSound) {
                 AudioContext.QueueAudio(BeepSound);
             }
         }
 
-        public static void AdjustBeepSoundVolume(int newVolume) {
+        public static byte[] AdjustBeepSoundVolume(byte[] beepUnadjusted, int newVolume) {
             float vol = newVolume / 100.0f;
-            BeepSound = new byte[BeepSoundUnadjusted.Length];
-
-            for(int i = 0; i < BeepSound.Length; i += 2) {
-                short sample = (short) (BeepSoundUnadjusted[i] | (BeepSoundUnadjusted[i + 1] << 8));
+            byte[] beepSound = new byte[beepUnadjusted.Length];
+            for(int i = 0; i < beepSound.Length; i += 2) {
+                short sample = (short) (beepUnadjusted[i] | (beepUnadjusted[i + 1] << 8));
                 float floatSample = sample;
 
                 floatSample *= vol;
@@ -382,14 +405,14 @@ namespace FlowTimer {
                 if(floatSample > short.MaxValue) floatSample = short.MaxValue;
 
                 sample = (short) floatSample;
-                BeepSound[i] = (byte) (sample & 0xFF);
-                BeepSound[i + 1] = (byte) (sample >> 8);
+                beepSound[i] = (byte) (sample & 0xFF);
+                beepSound[i + 1] = (byte) (sample >> 8);
             }
               
             if(AudioContext.Format.wFormatTag == WAVE_FORMAT_IEEE_FLOAT || AudioContext.ExtensibleFormatTag == KSDATAFORMAT_SUBTYPE_IEEE_FLOAT) {
-                byte[] ieee = new byte[BeepSound.Length * 2];   
-                for(int i = 0; i < BeepSound.Length; i += 2) {
-                    short shortSample = (short) (BeepSound[i] | (BeepSound[i + 1] << 8));
+                byte[] ieee = new byte[beepSound.Length * 2];   
+                for(int i = 0; i < beepSound.Length; i += 2) {
+                    short shortSample = (short) (beepSound[i] | (beepSound[i + 1] << 8));
                     float floatSample = (float) shortSample / (float) short.MaxValue;
                     if(floatSample < -1) floatSample = -1;
                     if(floatSample > 1) floatSample = 1;
@@ -400,10 +423,11 @@ namespace FlowTimer {
                     ieee[i * 2 + 3] = bytes[3];
                 }
 
-                BeepSound = ieee;
+                beepSound = ieee;
             }
 
             CurrentTab.OnBeepVolumeChange();
+            return beepSound;
         }
 
         public static void ChangeKeyMethod(KeyMethod newMethod) {
