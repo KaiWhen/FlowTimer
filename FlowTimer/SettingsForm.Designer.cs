@@ -62,11 +62,31 @@
             this.ButtonImportBeep.UseVisualStyleBackColor = true;
             this.ButtonImportBeep.Click += new System.EventHandler(this.ButtonImportBeep_Click);
             // 
+            // LabelBeepFail
+            // 
+            this.LabelBeepFail = new System.Windows.Forms.Label();
+            this.LabelBeepFail.AutoSize = true;
+            this.LabelBeepFail.Location = new System.Drawing.Point(5, 63);
+            this.LabelBeepFail.Name = "LabelBeepFail";
+            this.LabelBeepFail.Size = new System.Drawing.Size(54, 13);
+            this.LabelBeepFail.TabIndex = 31;
+            this.LabelBeepFail.Text = "Fail Beep:";
+            // 
+            // ComboBoxBeepFail
+            // 
+            this.ComboBoxBeepFail = new System.Windows.Forms.ComboBox();
+            this.ComboBoxBeepFail.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.ComboBoxBeepFail.FormattingEnabled = true;
+            this.ComboBoxBeepFail.Location = new System.Drawing.Point(60, 59);
+            this.ComboBoxBeepFail.Name = "ComboBoxBeepFail";
+            this.ComboBoxBeepFail.Size = new System.Drawing.Size(112, 21);
+            this.ComboBoxBeepFail.TabIndex = 32;
+            // 
             // ComboBoxKey
             // 
             this.ComboBoxKey.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.ComboBoxKey.FormattingEnabled = true;
-            this.ComboBoxKey.Location = new System.Drawing.Point(52, 88);
+            this.ComboBoxKey.Location = new System.Drawing.Point(52, 111);
             this.ComboBoxKey.Name = "ComboBoxKey";
             this.ComboBoxKey.Size = new System.Drawing.Size(112, 21);
             this.ComboBoxKey.TabIndex = 25;
@@ -74,7 +94,7 @@
             // LabelKey
             // 
             this.LabelKey.AutoSize = true;
-            this.LabelKey.Location = new System.Drawing.Point(5, 91);
+            this.LabelKey.Location = new System.Drawing.Point(5, 114);
             this.LabelKey.Name = "LabelKey";
             this.LabelKey.Size = new System.Drawing.Size(28, 13);
             this.LabelKey.TabIndex = 24;
@@ -83,7 +103,7 @@
             // TrackBarVolume
             // 
             this.TrackBarVolume.AutoSize = false;
-            this.TrackBarVolume.Location = new System.Drawing.Point(45, 63);
+            this.TrackBarVolume.Location = new System.Drawing.Point(45, 86);
             this.TrackBarVolume.Maximum = 100;
             this.TrackBarVolume.Name = "TrackBarVolume";
             this.TrackBarVolume.Size = new System.Drawing.Size(165, 21);
@@ -95,7 +115,7 @@
             // TextBoxVolume
             // 
             this.TextBoxVolume.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.7F);
-            this.TextBoxVolume.Location = new System.Drawing.Point(208, 62);
+            this.TextBoxVolume.Location = new System.Drawing.Point(208, 85);
             this.TextBoxVolume.Name = "TextBoxVolume";
             this.TextBoxVolume.Size = new System.Drawing.Size(73, 21);
             this.TextBoxVolume.TabIndex = 29;
@@ -103,7 +123,7 @@
             // LabelVolume
             // 
             this.LabelVolume.AutoSize = true;
-            this.LabelVolume.Location = new System.Drawing.Point(6, 64);
+            this.LabelVolume.Location = new System.Drawing.Point(6, 87);
             this.LabelVolume.Name = "LabelVolume";
             this.LabelVolume.Size = new System.Drawing.Size(45, 13);
             this.LabelVolume.TabIndex = 30;
@@ -122,6 +142,8 @@
             this.Controls.Add(this.ButtonImportBeep);
             this.Controls.Add(this.ComboBoxBeep);
             this.Controls.Add(this.LabelBeep);
+            this.Controls.Add(this.ComboBoxBeepFail);
+            this.Controls.Add(this.LabelBeepFail);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
             this.Name = "SettingsForm";
             this.Text = "Settings";
@@ -140,5 +162,7 @@
         private System.Windows.Forms.TrackBar TrackBarVolume;
         private System.Windows.Forms.TextBox TextBoxVolume;
         public System.Windows.Forms.Label LabelVolume;
+        public System.Windows.Forms.Label LabelBeepFail;
+        public System.Windows.Forms.ComboBox ComboBoxBeepFail;
     }
 }

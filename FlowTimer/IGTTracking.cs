@@ -236,6 +236,7 @@ namespace FlowTimer {
             FlowTimer.MainForm.LabelOffset3.Top = IGTTimer.Y - 16;
             FlowTimer.MainForm.LabelInterval3.Top = IGTTimer.Y - 16;
             FlowTimer.MainForm.LabelBeeps3.Top = IGTTimer.Y - 16;
+            FlowTimer.MainForm.LabelSecFail.Top = IGTTimer.Y - 16;
             for(int i = 0; i < Timers.Count; ++i)
                 Timers[i].Index = i;
 
@@ -350,13 +351,15 @@ namespace FlowTimer {
                 offsets[i] = offset + 60.0f / info.FPS * 1000.0f * i;
 
             List<double> validOffsets = new List<double>();
+            List<double> failOffsets = new List<double>();
             var secFails = info.SecFails;
             if (secFails != null)
             {
                 foreach (var o in offsets)
                 {
-                    uint igtSec = (uint)((o / 1000.0 % 60) + CurrentIGTSecond);
+                    uint igtSec = (uint)((o / 1000.0 % 60) + CurrentIGTSecond) % 60;
                     if (!secFails.Contains(igtSec)) validOffsets.Add(o);
+                    else failOffsets.Add(o);
                 }
             }
             else
@@ -366,6 +369,8 @@ namespace FlowTimer {
 
             FlowTimer.AudioContext.ClearQueuedAudio();
             FlowTimer.UpdatePCM(validOffsets, info.Interval, info.NumBeeps, false);
+            if (!string.IsNullOrEmpty(FlowTimer.Settings.BeepFail) && FlowTimer.Settings.BeepFail != "None")
+                FlowTimer.UpdatePCMCustom(failOffsets, info.Interval, info.NumBeeps, FlowTimer.BeepSoundFail);
             FlowTimer.AudioContext.QueueAudio(FlowTimer.PCM);
             CurrentOffset = (validOffsets[validOffsets.Count - 1] + now - FlowTimer.TimerStart) / 1000.0f;
             Playing = true;

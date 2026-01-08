@@ -44,6 +44,8 @@ namespace FlowTimer {
         public static AudioContext AudioContext;
         public static byte[] BeepSound;
         public static byte[] BeepSoundUnadjusted;
+        public static byte[] BeepSoundFail;
+        public static byte[] BeepSoundFailUnadjusted;
         public static byte[] PCM;
         public static double MaxOffset;
 
@@ -76,7 +78,7 @@ namespace FlowTimer {
             Pin(Settings.Pinned);
 
             AudioContext.GlobalInit();
-            ChangeBeepSound(Settings.Beep, false);
+            ChangeBeepSound(Settings.Beep, Settings.BeepFail, false);
 
             TimerUpdateThread = new Thread(TimerUpdateCallback);
 
@@ -250,6 +252,19 @@ namespace FlowTimer {
             }
         }
 
+        public static void UpdatePCMCustom(List<double> offsets, uint interval, uint numBeeps, byte[] beep)
+        {
+            foreach (double offset in offsets) {
+                for (int i = 0; i < numBeeps; i++) {
+                    int destOffset = (int) ((offset - i * interval) / 1000.0 * AudioContext.SampleRate) * AudioContext.NumChannels * 2;
+                    int maxWrite = Math.Min(beep.Length, PCM.Length - destOffset);
+                    for (int b = 0; b < maxWrite; b++) {
+                        PCM[destOffset + b] += beep[b];
+                    }
+                }
+            }
+        }
+
         public static void StartTimer() {
             AudioContext.ClearQueuedAudio();
 
@@ -356,26 +371,34 @@ namespace FlowTimer {
             return true;
         }
 
-        public static void ChangeBeepSound(string beepName, bool playSound = true) {
+        public static void ChangeBeepSound(string beepName, string beepFailName, bool playSound = true) {
             if(AudioContext != null) AudioContext.Destroy();
 
             SDL_AudioSpec audioSpec;
             Wave.LoadWAV(Beeps + beepName + ".wav", out BeepSoundUnadjusted, out audioSpec);
             AudioContext = new AudioContext(audioSpec.freq, audioSpec.format, audioSpec.channels);
-            AdjustBeepSoundVolume(Settings.Volume);
+            BeepSound = AdjustBeepSoundVolume(BeepSoundUnadjusted, Settings.Volume);
+            if (!string.IsNullOrEmpty(beepFailName) && beepFailName != "None") {
+                Wave.LoadWAV(Beeps + beepFailName + ".wav", out BeepSoundFailUnadjusted, out _);
+                BeepSoundFail = AdjustBeepSoundVolume(BeepSoundFailUnadjusted, Settings.Volume);
+            }
+            else {
+                BeepSoundFail = null;
+            }
             CurrentTab.OnBeepSoundChange();
             Settings.Beep = beepName;
+            Settings.BeepFail = (beepFailName == "None") ? null : beepFailName;
 
             if(playSound) {
                 AudioContext.QueueAudio(BeepSound);
             }
         }
 
-        public static void AdjustBeepSoundVolume(int newVolume) {
+        public static byte[] AdjustBeepSoundVolume(byte[] beepUnadjusted, int newVolume) {
             float vol = newVolume / 100.0f;
-            BeepSound = new byte[BeepSoundUnadjusted.Length];
-            for(int i = 0; i < BeepSound.Length; i += 2) {
-                short sample = (short) (BeepSoundUnadjusted[i] | (BeepSoundUnadjusted[i + 1] << 8));
+            byte[] beepSound = new byte[beepUnadjusted.Length];
+            for(int i = 0; i < beepSound.Length; i += 2) {
+                short sample = (short) (beepUnadjusted[i] | (beepUnadjusted[i + 1] << 8));
                 float floatSample = sample;
 
                 floatSample *= vol;
@@ -384,11 +407,12 @@ namespace FlowTimer {
                 if(floatSample > short.MaxValue) floatSample = short.MaxValue;
 
                 sample = (short) floatSample;
-                BeepSound[i] = (byte) (sample & 0xFF);
-                BeepSound[i + 1] = (byte) (sample >> 8);
+                beepSound[i] = (byte) (sample & 0xFF);
+                beepSound[i + 1] = (byte) (sample >> 8);
             }
 
             CurrentTab.OnBeepVolumeChange();
+            return beepSound;
         }
 
         public static void ChangeKeyMethod(KeyMethod newMethod) {

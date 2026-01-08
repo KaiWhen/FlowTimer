@@ -42,21 +42,29 @@ namespace FlowTimer {
             LabelBeep.Top = SizeKeybinds + 14;
             ComboBoxBeep.Top = SizeKeybinds + 10;
             ButtonImportBeep.Top = SizeKeybinds + 9;
-            LabelVolume.Top = SizeKeybinds + 38;
-            TrackBarVolume.Top = SizeKeybinds + 37;
-            TextBoxVolume.Top = SizeKeybinds + 36;
-            LabelKey.Top = SizeKeybinds + 65;
-            ComboBoxKey.Top = SizeKeybinds + 62;
+            LabelBeepFail.Top = SizeKeybinds + 40;
+            ComboBoxBeepFail.Top = SizeKeybinds + 38;
+            LabelVolume.Top = SizeKeybinds + 63;
+            TrackBarVolume.Top = SizeKeybinds + 62;
+            TextBoxVolume.Top = SizeKeybinds + 61;
+            LabelKey.Top = SizeKeybinds + 90;
+            ComboBoxKey.Top = SizeKeybinds + 87;
 
             Size = new System.Drawing.Size {
                 Width = Size.Width,
-                Height = SizeKeybinds + 128
+                Height = SizeKeybinds + 155
             };
 
             foreach(string file in Directory.GetFiles(FlowTimer.Beeps, "*.wav")) {
                 ComboBoxBeep.Items.Add(Path.GetFileNameWithoutExtension(file));
             }
             ComboBoxBeep.SelectedItem = FlowTimer.Settings.Beep;
+
+            ComboBoxBeepFail.Items.Add("None");
+            foreach(string file in Directory.GetFiles(FlowTimer.Beeps, "*.wav")) {
+                ComboBoxBeepFail.Items.Add(Path.GetFileNameWithoutExtension(file));
+            }
+            ComboBoxBeepFail.SelectedItem = FlowTimer.Settings.BeepFail;
 
             foreach(KeyMethod keymethod in Enum.GetValues(typeof(KeyMethod))) {
                 ComboBoxKey.Items.Add(keymethod.ToFormattedString());
@@ -67,6 +75,7 @@ namespace FlowTimer {
             TextBoxVolume.Text = FlowTimer.Settings.Volume.ToString();
 
             ComboBoxBeep.SelectedIndexChanged += ComboBoxBeep_SelectedIndexChanged;
+            ComboBoxBeepFail.SelectedIndexChanged += ComboBoxBeepFail_SelectedIndexChanged;
             TrackBarVolume.ValueChanged += TrackBarVolume_ValueChanged;
             TrackBarVolume.MouseUp += TrackBarVolume_MouseUp;
             TextBoxVolume.KeyPress += TextBoxVolume_KeyPress;
@@ -126,7 +135,11 @@ namespace FlowTimer {
         }
 
         private void ComboBoxBeep_SelectedIndexChanged(object sender, EventArgs e) {
-            FlowTimer.ChangeBeepSound(ComboBoxBeep.SelectedItem as string);
+            FlowTimer.ChangeBeepSound(ComboBoxBeep.SelectedItem as string, ComboBoxBeepFail.SelectedItem as string);
+        }
+
+        private void ComboBoxBeepFail_SelectedIndexChanged(object sender, EventArgs e) {
+            FlowTimer.ChangeBeepSound(ComboBoxBeep.SelectedItem as string, ComboBoxBeepFail.SelectedItem as string);
         }
 
         private void ComboBoxKey_SelectedIndexChanged(object sender, EventArgs e) {
@@ -140,7 +153,8 @@ namespace FlowTimer {
         private void TrackBarVolume_ValueChanged(object sender, EventArgs e) {
             if((Win32.GetKeyState(Keys.LButton) & 0x80) == 0) {
                 if(TextBoxVolume.Text != "") TextBoxVolume.Text = TrackBarVolume.Value.ToString();
-                FlowTimer.AdjustBeepSoundVolume(TrackBarVolume.Value);
+                FlowTimer.BeepSound = FlowTimer.AdjustBeepSoundVolume(FlowTimer.BeepSoundUnadjusted, TrackBarVolume.Value);
+                FlowTimer.BeepSoundFail = FlowTimer.AdjustBeepSoundVolume(FlowTimer.BeepSoundFailUnadjusted, TrackBarVolume.Value);
                 FlowTimer.AudioContext.QueueAudio(FlowTimer.BeepSound);
                 FlowTimer.Settings.Volume = TrackBarVolume.Value;
             }

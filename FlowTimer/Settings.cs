@@ -31,6 +31,7 @@ namespace FlowTimer {
         public Hotkey TargetSub5 = new Hotkey(Keys.None, Keys.None, false);
         public KeyMethod KeyMethod = KeyMethod.OnPress;
         public string Beep = "ping1";
+        public string BeepFail = "click1";
         public bool Pinned = false;
         public string LastLoadedTimers = null;
         public string LastLoadedIGTTimers = null;
