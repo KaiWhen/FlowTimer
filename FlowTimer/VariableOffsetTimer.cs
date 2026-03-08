@@ -2,6 +2,8 @@
 using System.Windows.Forms;
 using System.Threading;
 using System.Collections.Generic;
+using System.IO;
+using Newtonsoft.Json;
 
 namespace FlowTimer {
 
@@ -28,6 +30,19 @@ namespace FlowTimer {
         public double CurrentOffset;
 
         public double Adjusted;
+
+        private readonly object timerLock = new object();
+        public FileSystemWatcher TargetFrameWatcher;
+        public static readonly string TargetFrameFolder = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "PoochCandy"
+        );
+        public static readonly string TargetFrameFile = Path.Combine(TargetFrameFolder, "frame.json");
+
+        public class TargetFrameInfo
+        {
+            public double Frame { get; set; }
+        }
 
         public VariableOffsetTimer(TabPage tab, params Control[] copyControls) : base(tab, null, copyControls) {
             TextBoxFrame = FlowTimer.MainForm.TextBoxFrame;
@@ -67,6 +82,7 @@ namespace FlowTimer {
             TextBoxFrame.Enabled = true;
             TextBoxFrame.Focus();
             Adjusted = 0;
+            InitializeTargetFrameWatcher();
         }
 
         public override void OnVisualTimerStart() {
@@ -79,6 +95,7 @@ namespace FlowTimer {
             EnableControls(true);
             FlowTimer.MainForm.LabelTimer.Text = 0.0.ToFormattedString();
             FlowTimer.MainForm.LabelTimer.Focus();
+            DisposeWatcher();
         }
 
         public override void OnKeyEvent(Keys key) {
@@ -99,8 +116,13 @@ namespace FlowTimer {
 
         public double TimerCallbackFn(double start) {
             OnDataChange();
-            double ret = Math.Min(Math.Max((Win32.GetTime() - start) / 1000.0, 0.001), CurrentOffset);
-            if(ret == CurrentOffset) ret = 0.0;
+            double ret;
+
+            lock (timerLock) {
+                ret = Math.Min(Math.Max((Win32.GetTime() - start) / 1000.0, 0.001), CurrentOffset);
+                if(ret == CurrentOffset) ret = 0.0;
+            }
+
             return ret;
         }
 
@@ -138,9 +160,11 @@ namespace FlowTimer {
             new Thread(() => {
                 Thread.Sleep(50);
                 MethodInvoker inv = delegate {
-                    FlowTimer.MainForm.TextBoxFrame.Text = "";
-                    FlowTimer.MainForm.TextBoxFrame.Enabled = true;
-                    FlowTimer.MainForm.TextBoxFrame.Focus();
+                    if (!Submitted) {
+                        FlowTimer.MainForm.TextBoxFrame.Text = "";
+                        FlowTimer.MainForm.TextBoxFrame.Enabled = true;
+                        FlowTimer.MainForm.TextBoxFrame.Focus();
+                    }
                 };
                 FlowTimer.MainForm.Invoke(inv);
             }).Start();
@@ -207,5 +231,56 @@ namespace FlowTimer {
 
             return TimerError.NoError;
         }
+
+         public void InitializeTargetFrameWatcher()
+        {
+            if (!File.Exists(TargetFrameFile))
+            {
+                return;
+            }
+
+            TargetFrameWatcher = new FileSystemWatcher
+            {
+                Path = TargetFrameFolder,
+                Filter = "frame.json",
+                NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size
+            };
+
+            TargetFrameWatcher.Changed += OnTargetIGTFileChanged;
+            TargetFrameWatcher.EnableRaisingEvents = true;
+        }
+
+        private void OnTargetIGTFileChanged(object sender, FileSystemEventArgs e)
+        {
+            if (Tab.InvokeRequired)
+            {
+                Tab.Invoke(new Action(() => OnTargetIGTFileChanged(sender, e)));
+                return;
+            }
+
+            lock (timerLock)
+            {
+                try
+                {
+                    string json = File.ReadAllText(TargetFrameFile);
+                    var targetFrameContent =  JsonConvert.DeserializeObject<TargetFrameInfo>(json);
+                    Undo();
+                    FlowTimer.MainForm.TextBoxFrame.Text = targetFrameContent.Frame.ToString();
+                    Submit();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error reading frame file: {ex.Message}");
+                }
+            }
+        }
+        
+        public void DisposeWatcher() {
+            if (TargetFrameWatcher != null) {
+                TargetFrameWatcher.EnableRaisingEvents = false;
+                TargetFrameWatcher.Dispose();
+            }
+        }
+
     }
 }
