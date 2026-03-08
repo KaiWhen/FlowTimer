@@ -288,10 +288,12 @@ namespace FlowTimer {
                 return;
             }
 
-            TargetIGTWatcher = new FileSystemWatcher();
-            TargetIGTWatcher.Path = TargetIGTFolder;
-            TargetIGTWatcher.Filter = "curr_igt.json";
-            TargetIGTWatcher.NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size;
+            TargetIGTWatcher = new FileSystemWatcher
+            {
+                Path = TargetIGTFolder,
+                Filter = "curr_igt.json",
+                NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size
+            };
 
             TargetIGTWatcher.Changed += OnTargetIGTFileChanged;
             TargetIGTWatcher.EnableRaisingEvents = true;
@@ -324,7 +326,7 @@ namespace FlowTimer {
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Error reading Second Fails file: {ex.Message}");
+                    Console.WriteLine($"Error reading target IGT file: {ex.Message}");
                 }
             }
         }
