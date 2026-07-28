@@ -112,11 +112,13 @@ namespace FlowTimer {
             AudioThread.Start();
         }
 
-        public unsafe void GenerateSamples(IntPtr dest, int numBytes) {
-            int length = Math.Min(numBytes, AudioBuffer.Length - AudioBufferPosition);
-            for(int i = 0; i < length; i++) ((byte*) dest)[i] = AudioBuffer[AudioBufferPosition + i];
-            for(int i = length; i < numBytes; i++) ((byte*) dest)[i] = 0;
-            AudioBufferPosition += length;
+        public unsafe void GenerateSamples(IntPtr dest, int numBytes)
+        {
+            int position = Math.Min(AudioBufferPosition, AudioBuffer.Length);
+            int length = Math.Min(numBytes, AudioBuffer.Length - position);
+            for (int i = 0; i < length; i++) ((byte*)dest)[i] = AudioBuffer[position + i];
+            for (int i = length; i < numBytes; i++) ((byte*)dest)[i] = 0;
+            AudioBufferPosition += numBytes;
         }
 
         public byte[] ResamplePCM(byte[] pcm, WAVEFORMATEX pcmFormat) {

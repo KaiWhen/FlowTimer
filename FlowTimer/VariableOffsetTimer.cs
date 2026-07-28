@@ -266,6 +266,7 @@ namespace FlowTimer {
                     var targetFrameContent =  JsonConvert.DeserializeObject<TargetFrameInfo>(json);
                     Undo();
                     FlowTimer.MainForm.TextBoxFrame.Text = targetFrameContent.Frame.ToString();
+                    OnDataChange();
                     Submit();
                 }
                 catch (Exception ex)
