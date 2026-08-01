@@ -12,14 +12,26 @@ namespace FlowTimer {
     public class FixedOffsetTimer : BaseTimer {
 
         public Button ButtonAdd;
+        public Button ButtonAddFrameNext;
+        public Button ButtonSubFrameNext;
+        public Button ButtonAddFrameAll;
+        public Button ButtonSubFrameAll;
         public Button ButtonLoadTimers;
         public Button ButtonSaveTimers;
 
         public List<Timer> Timers;
         public Timer SelectedTimer;
 
+        public int NextOffsetIndex;
+        public int AdjustedNext;
+        public int AdjustedAll;
+
         public FixedOffsetTimer(TabPage tab, params Control[] copyControls) : base(tab, (start) => Math.Max((FlowTimer.MaxOffset - (Win32.GetTime() - start)) / 1000.0, 0.0), copyControls) {
             ButtonAdd = FlowTimer.MainForm.ButtonAdd;
+            ButtonAddFrameNext = FlowTimer.MainForm.ButtonAddFrameNext;
+            ButtonSubFrameNext = FlowTimer.MainForm.ButtonSubFrameNext;
+            ButtonAddFrameAll = FlowTimer.MainForm.ButtonAddFrameAll;
+            ButtonSubFrameAll = FlowTimer.MainForm.ButtonSubFrameAll; 
             ButtonLoadTimers = FlowTimer.MainForm.ButtonLoadTimers;
             ButtonSaveTimers = FlowTimer.MainForm.ButtonSaveTimers;
 
@@ -32,6 +44,7 @@ namespace FlowTimer {
             } else {
                 AddTimer();
             }
+            EnableShiftOffsetControls(false);
         }
 
         public override void OnLoad() {
@@ -45,15 +58,26 @@ namespace FlowTimer {
 
             SelectedTimer.GetTimerInfo(out TimerInfo info);
             FlowTimer.MaxOffset = info.MaxOffset;
+
+            NextOffsetIndex = 0;
+            AdjustedNext = 0;
+            AdjustedAll = 0;
+            UpdateAdjustedFrameText();
         }
 
         public override void OnVisualTimerStart() {
             EnableControls(false);
+            EnableShiftOffsetControls(true);
         }
 
         public override void OnTimerStop() {
             SelectTimer(SelectedTimer);
+            NextOffsetIndex = 0;
+            AdjustedNext = 0;
+            AdjustedAll = 0;
+            UpdateAdjustedFrameText();
             EnableControls(true);
+            EnableShiftOffsetControls(false);
         }
 
         public override void OnKeyEvent(Keys key) {
@@ -61,6 +85,14 @@ namespace FlowTimer {
                 MoveSelectedTimerIndex(-1);
             } else if(FlowTimer.Settings.Down.IsPressed(key)) {
                 MoveSelectedTimerIndex(+1);
+            } else if(FlowTimer.Settings.AddFrameNext.IsPressed(key)) {
+                ShiftNextOffset(+1, 16.75);
+            } else if(FlowTimer.Settings.SubFrameNext.IsPressed(key)) {
+                ShiftNextOffset(-1, 16.75);
+            } else if(FlowTimer.Settings.AddFrameAll.IsPressed(key)) {
+                ShiftFutureOffsets(+1, 16.75);
+            } else if(FlowTimer.Settings.SubFrameAll.IsPressed(key)) {
+                ShiftFutureOffsets(-1, 16.75);
             }
         }
 
@@ -74,18 +106,29 @@ namespace FlowTimer {
 
         public void RepositionAddButton() {
             ButtonAdd.SetBounds(Timer.X, Timer.Y + Timer.Size * Timers.Count - 2, ButtonAdd.Bounds.Width, ButtonAdd.Bounds.Height);
+            ButtonSubFrameNext.SetBounds(Timer.X + ButtonAdd.Bounds.Width + 5, Timer.Y + Timer.Size * Timers.Count - 2, ButtonSubFrameNext.Bounds.Width, ButtonSubFrameNext.Bounds.Height);
+            ButtonAddFrameNext.SetBounds(ButtonSubFrameNext.Bounds.X + ButtonSubFrameNext.Bounds.Width + 5, Timer.Y + Timer.Size * Timers.Count - 2, ButtonAddFrameNext.Bounds.Width, ButtonAddFrameNext.Bounds.Height);
+            ButtonSubFrameAll.SetBounds(ButtonAddFrameNext.Bounds.X + ButtonAddFrameNext.Bounds.Width + 5, Timer.Y + Timer.Size * Timers.Count - 2, ButtonSubFrameAll.Bounds.Width, ButtonSubFrameAll.Bounds.Height);
+            ButtonAddFrameAll.SetBounds(ButtonSubFrameAll.Bounds.X + ButtonSubFrameAll.Bounds.Width + 5, Timer.Y + Timer.Size * Timers.Count - 2, ButtonAddFrameAll.Bounds.Width, ButtonAddFrameAll.Bounds.Height);
             FlowTimer.ResizeForm(FlowTimer.MainForm.Width, FlowTimer.MainFormBaseHeight + Math.Max(Timers.Count - 5, 0) * Timer.Size);
         }
 
         public void EnableControls(bool enabled) {
-            //foreach(Timer timer in Timers) {
-            //    Control[] excluded = { timer.RadioButton, };
-            //    timer.Controls.Except(excluded).ToList().ForEach(control => control.Enabled = enabled);
-            //}
+            foreach(Timer timer in Timers) {
+               Control[] excluded = { timer.RadioButton, timer.AdjustedFrameText };
+               timer.Controls.Except(excluded).ToList().ForEach(control => control.Enabled = enabled);
+            }
 
-            //ButtonAdd.Enabled = enabled;
-            //ButtonLoadTimers.Enabled = enabled;
-            //ButtonSaveTimers.Enabled = enabled;
+            ButtonAdd.Enabled = enabled;
+            ButtonLoadTimers.Enabled = enabled;
+            ButtonSaveTimers.Enabled = enabled;
+        }
+
+        public void EnableShiftOffsetControls(bool enabled) {
+            ButtonAddFrameNext.Enabled = enabled;
+            ButtonSubFrameNext.Enabled = enabled;
+            ButtonAddFrameAll.Enabled = enabled;
+            ButtonSubFrameAll.Enabled = enabled;
         }
 
         public void AddTimer() {
@@ -155,6 +198,88 @@ namespace FlowTimer {
             int selectedTimerIndex = Timers.IndexOf(SelectedTimer);
             selectedTimerIndex = (((selectedTimerIndex + amount) % Timers.Count) + Timers.Count) % Timers.Count;
             SelectTimer(Timers[selectedTimerIndex]);
+        }
+
+        private void RequeueOffsets(TimerInfo info, double elapsedMs, double frameDurationMs) {
+            double leadTimeMs = info.Interval * (info.NumBeeps - 1);
+
+            List<double> newOffsets = new List<double>();
+            List<double> playingBeeps = new List<double>();
+
+            for (int i = 0; i < info.Offsets.Length; i++) {
+                uint offset = info.Offsets[i];
+                if (offset <= elapsedMs) continue;
+
+                if (offset - leadTimeMs <= elapsedMs) {
+                    for (int b = 0; b < info.NumBeeps; b++) {
+                        double beepTime = offset - b * info.Interval;
+                        if (beepTime > elapsedMs) playingBeeps.Add(beepTime - elapsedMs);
+                    }
+                } else {
+                    double adjusted = offset + AdjustedAll * frameDurationMs;
+                    if (i + 1 == NextOffsetIndex) adjusted += AdjustedNext * frameDurationMs;
+                    newOffsets.Add(adjusted - elapsedMs);
+                }
+            }
+
+            if (newOffsets.Count == 0 && playingBeeps.Count == 0) return;
+
+            double maxNeededMs = Math.Max(
+                newOffsets.Count > 0 ? newOffsets.Max() : 0,
+                playingBeeps.Count > 0 ? playingBeeps.Max() : 0
+            );
+
+            FlowTimer.AudioContext.ClearQueuedAudio();
+            FlowTimer.AllocatePCM(maxNeededMs, false);
+
+            if (newOffsets.Count > 0)
+                FlowTimer.UpdatePCMCustom(newOffsets, info.Interval, info.NumBeeps, FlowTimer.BeepSound);
+
+            if (playingBeeps.Count > 0)
+                FlowTimer.UpdatePCMCustom(playingBeeps, 0, 1, FlowTimer.BeepSound);
+
+            FlowTimer.AudioContext.QueueAudio(FlowTimer.PCM);
+        }
+
+        public void ShiftNextOffset(int frames, double frameDurationMs) {
+            if (!FlowTimer.IsTimerRunning || SelectedTimer == null || !Selected) return;
+            if (SelectedTimer.GetTimerInfo(out TimerInfo info) != TimerError.NoError) return;
+
+            double elapsedMs = Win32.GetTime() - FlowTimer.TimerStart;
+            double leadTimeMs = info.Interval * (info.NumBeeps - 1);
+
+            int nextIndex = 0;
+            for (int i = 0; i < info.Offsets.Length; i++) {
+                if (info.Offsets[i] - leadTimeMs <= elapsedMs) continue;
+                nextIndex = i + 1;
+                break;
+            }
+            if (nextIndex == 0) return;
+
+            if (nextIndex == NextOffsetIndex) AdjustedNext += frames;
+            else { NextOffsetIndex = nextIndex; AdjustedNext = frames; }
+
+            RequeueOffsets(info, elapsedMs, frameDurationMs);
+            UpdateAdjustedFrameText();
+        }
+
+        public void ShiftFutureOffsets(int frames, double frameDurationMs) {
+            if (!FlowTimer.IsTimerRunning || SelectedTimer == null || !Selected) return;
+            if (SelectedTimer.GetTimerInfo(out TimerInfo info) != TimerError.NoError) return;
+
+            AdjustedAll += frames;
+            RequeueOffsets(info, Win32.GetTime() - FlowTimer.TimerStart, frameDurationMs);
+            UpdateAdjustedFrameText();
+        }
+
+        public void UpdateAdjustedFrameText() {
+            if (SelectedTimer == null) return;
+
+            List<string> parts = new List<string>();
+            if (AdjustedNext != 0) parts.Add($"{AdjustedNext:+#;-#} ({NextOffsetIndex})");
+            if (AdjustedAll != 0) parts.Add($"{AdjustedAll:+#;-#} (all)");
+
+            SelectedTimer.AdjustedFrameText.Text = string.Join(" ", parts);
         }
 
         public void OpenLoadTimersDialog() {
@@ -290,6 +415,7 @@ namespace FlowTimer {
         public TextBox TextBoxNumBeeps;
         public RadioButton RadioButton;
         public Button RemoveButton;
+        public Label AdjustedFrameText;
         public List<Control> Controls;
 
         public List<TextBox> TextBoxes {
@@ -313,6 +439,8 @@ namespace FlowTimer {
 
                 Rectangle lastbox = TextBoxes.Last().Bounds;
                 RemoveButton.SetBounds(lastbox.X + lastbox.Width + 5, lastbox.Y, 38, 21);
+
+                AdjustedFrameText.SetBounds(RemoveButton.Bounds.X + RemoveButton.Bounds.Width + 5, RemoveButton.Bounds.Y + 4, 80, 21);
             }
         }
 
@@ -351,6 +479,10 @@ namespace FlowTimer {
             RemoveButton.TabStop = false;
             RemoveButton.DisableSelect();
             Controls.Add(RemoveButton);
+
+            AdjustedFrameText = new Label();
+            AdjustedFrameText.Text = "";
+            Controls.Add(AdjustedFrameText);
 
             Index = index;
         }

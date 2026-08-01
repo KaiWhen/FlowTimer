@@ -3,7 +3,6 @@ using System.Windows.Forms;
 using System.Threading;
 using System.Collections.Generic;
 using System.IO;
-using Newtonsoft.Json;
 
 namespace FlowTimer {
 
@@ -31,7 +30,6 @@ namespace FlowTimer {
 
         public double Adjusted;
 
-        private readonly object timerLock = new object();
         public FileSystemWatcher TargetFrameWatcher;
         public static readonly string TargetFrameFolder = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
@@ -82,7 +80,6 @@ namespace FlowTimer {
             TextBoxFrame.Enabled = true;
             TextBoxFrame.Focus();
             Adjusted = 0;
-            InitializeTargetFrameWatcher();
         }
 
         public override void OnVisualTimerStart() {
@@ -95,7 +92,6 @@ namespace FlowTimer {
             EnableControls(true);
             FlowTimer.MainForm.LabelTimer.Text = 0.0.ToFormattedString();
             FlowTimer.MainForm.LabelTimer.Focus();
-            DisposeWatcher();
         }
 
         public override void OnKeyEvent(Keys key) {
@@ -103,6 +99,20 @@ namespace FlowTimer {
                 ChangeAudio(1);
             } else if(FlowTimer.Settings.SubFrame.IsPressed(key) && FlowTimer.MainForm.ButtonMinus.Enabled) {
                 ChangeAudio(-1);
+            } else if(FlowTimer.Settings.SubFrame2.IsPressed(key) && FlowTimer.MainForm.ButtonMinus.Enabled) {
+                ChangeAudio(-2);
+            } else if(FlowTimer.Settings.SubFrame4.IsPressed(key) && FlowTimer.MainForm.ButtonMinus.Enabled) {
+                ChangeAudio(-4);
+            } else if(FlowTimer.Settings.SubFrame6.IsPressed(key) && FlowTimer.MainForm.ButtonMinus.Enabled) {
+                ChangeAudio(-6);
+            } else if(FlowTimer.Settings.SubFrame8.IsPressed(key) && FlowTimer.MainForm.ButtonMinus.Enabled) {
+                ChangeAudio(-8);
+            } else if(FlowTimer.Settings.SubFrame3.IsPressed(key) && FlowTimer.MainForm.ButtonMinus.Enabled) {
+                ChangeAudio(-3);
+            } else if(FlowTimer.Settings.SubFrame10.IsPressed(key) && FlowTimer.MainForm.ButtonMinus.Enabled) {
+                ChangeAudio(-10);
+            } else if(FlowTimer.Settings.SubFrame28.IsPressed(key) && FlowTimer.MainForm.ButtonMinus.Enabled) {
+                ChangeAudio(-28);
             } else if(FlowTimer.Settings.Undo.IsPressed(key) && FlowTimer.MainForm.ButtonUndo.Enabled) {
                 Undo();
             }
@@ -117,12 +127,8 @@ namespace FlowTimer {
         public double TimerCallbackFn(double start) {
             OnDataChange();
             double ret;
-
-            lock (timerLock) {
-                ret = Math.Min(Math.Max((Win32.GetTime() - start) / 1000.0, 0.001), CurrentOffset);
-                if(ret == CurrentOffset) ret = 0.0;
-            }
-
+            ret = Math.Min(Math.Max((Win32.GetTime() - start) / 1000.0, 0.001), CurrentOffset);
+            if(ret == CurrentOffset) ret = 0.0;
             return ret;
         }
 
@@ -135,6 +141,13 @@ namespace FlowTimer {
             bool canAdjust = Submitted && currentTime < CurrentOffset - Info.Interval * (Info.NumBeeps - 1) / 1000.0f - 0.05;
             FlowTimer.MainForm.ButtonPlus.Enabled = canAdjust;
             FlowTimer.MainForm.ButtonMinus.Enabled = canAdjust;
+        }
+
+        public bool CanAdjust(double adjusted) {
+            GetVariableInfo(out Info);
+            double currentTime = Win32.GetTime() - FlowTimer.TimerStart;
+            double offset = (Info.Frame / Info.FPS * 1000.0f) + Info.Offset + adjusted;
+            return Submitted && currentTime <= offset - Info.Interval * (Info.NumBeeps - 1);
         }
 
         public void Submit() {
@@ -171,8 +184,11 @@ namespace FlowTimer {
         }
 
         public void ChangeAudio(int numFrames) {
-            FlowTimer.AudioContext.ClearQueuedAudio();
+            GetVariableInfo(out Info);
             double amount = numFrames * 1000.0 / Info.FPS;
+            double adjusted = Adjusted + amount;
+            if (!CanAdjust(adjusted)) return;
+            FlowTimer.AudioContext.ClearQueuedAudio();
             Adjusted += amount;
             Submit();
 
@@ -231,57 +247,5 @@ namespace FlowTimer {
 
             return TimerError.NoError;
         }
-
-         public void InitializeTargetFrameWatcher()
-        {
-            if (!File.Exists(TargetFrameFile))
-            {
-                return;
-            }
-
-            TargetFrameWatcher = new FileSystemWatcher
-            {
-                Path = TargetFrameFolder,
-                Filter = "frame.json",
-                NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size
-            };
-
-            TargetFrameWatcher.Changed += OnTargetIGTFileChanged;
-            TargetFrameWatcher.EnableRaisingEvents = true;
-        }
-
-        private void OnTargetIGTFileChanged(object sender, FileSystemEventArgs e)
-        {
-            if (Tab.InvokeRequired)
-            {
-                Tab.Invoke(new Action(() => OnTargetIGTFileChanged(sender, e)));
-                return;
-            }
-
-            lock (timerLock)
-            {
-                try
-                {
-                    string json = File.ReadAllText(TargetFrameFile);
-                    var targetFrameContent =  JsonConvert.DeserializeObject<TargetFrameInfo>(json);
-                    Undo();
-                    FlowTimer.MainForm.TextBoxFrame.Text = targetFrameContent.Frame.ToString();
-                    OnDataChange();
-                    Submit();
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Error reading frame file: {ex.Message}");
-                }
-            }
-        }
-        
-        public void DisposeWatcher() {
-            if (TargetFrameWatcher != null) {
-                TargetFrameWatcher.EnableRaisingEvents = false;
-                TargetFrameWatcher.Dispose();
-            }
-        }
-
     }
 }

@@ -118,7 +118,7 @@ namespace FlowTimer {
             int length = Math.Min(numBytes, AudioBuffer.Length - position);
             for (int i = 0; i < length; i++) ((byte*)dest)[i] = AudioBuffer[position + i];
             for (int i = length; i < numBytes; i++) ((byte*)dest)[i] = 0;
-            AudioBufferPosition += numBytes;
+            AudioBufferPosition = position + length;
         }
 
         public byte[] ResamplePCM(byte[] pcm, WAVEFORMATEX pcmFormat) {

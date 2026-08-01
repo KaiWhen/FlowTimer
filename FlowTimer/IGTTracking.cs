@@ -21,6 +21,7 @@ namespace FlowTimer {
         public double CurrentIGTSecond;
         public HashSet<int> IGTSecondFailures;
         public double Adjusted;
+        public override double RetTime => -100.0;
 
         public List<IGTDelayer> Delayers;
         public static readonly string DelayersFile = FlowTimer.Folder + "igtdelayers.json";
