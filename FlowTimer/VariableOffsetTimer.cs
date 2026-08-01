@@ -30,18 +30,6 @@ namespace FlowTimer {
 
         public double Adjusted;
 
-        public FileSystemWatcher TargetFrameWatcher;
-        public static readonly string TargetFrameFolder = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            "PoochCandy"
-        );
-        public static readonly string TargetFrameFile = Path.Combine(TargetFrameFolder, "frame.json");
-
-        public class TargetFrameInfo
-        {
-            public double Frame { get; set; }
-        }
-
         public VariableOffsetTimer(TabPage tab, params Control[] copyControls) : base(tab, null, copyControls) {
             TextBoxFrame = FlowTimer.MainForm.TextBoxFrame;
             ComboBoxFPS = FlowTimer.MainForm.ComboBoxFPS;
