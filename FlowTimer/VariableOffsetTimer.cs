@@ -3,6 +3,7 @@ using System.Windows.Forms;
 using System.Threading;
 using System.Collections.Generic;
 using System.IO;
+using Newtonsoft.Json;
 
 namespace FlowTimer {
 
@@ -30,6 +31,7 @@ namespace FlowTimer {
 
         public double Adjusted;
 
+        private readonly object timerLock = new object();
         public FileSystemWatcher TargetFrameWatcher;
         public static readonly string TargetFrameFolder = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
@@ -80,6 +82,7 @@ namespace FlowTimer {
             TextBoxFrame.Enabled = true;
             TextBoxFrame.Focus();
             Adjusted = 0;
+            InitializeTargetFrameWatcher();
         }
 
         public override void OnVisualTimerStart() {
@@ -92,6 +95,7 @@ namespace FlowTimer {
             EnableControls(true);
             FlowTimer.MainForm.LabelTimer.Text = 0.0.ToFormattedString();
             FlowTimer.MainForm.LabelTimer.Focus();
+            DisposeWatcher();
         }
 
         public override void OnKeyEvent(Keys key) {
@@ -127,8 +131,12 @@ namespace FlowTimer {
         public double TimerCallbackFn(double start) {
             OnDataChange();
             double ret;
-            ret = Math.Min(Math.Max((Win32.GetTime() - start) / 1000.0, 0.001), CurrentOffset);
-            if(ret == CurrentOffset) ret = 0.0;
+
+            lock (timerLock) {
+                ret = Math.Min(Math.Max((Win32.GetTime() - start) / 1000.0, 0.001), CurrentOffset);
+                if(ret == CurrentOffset) ret = 0.0;
+            }
+
             return ret;
         }
 
@@ -247,5 +255,63 @@ namespace FlowTimer {
 
             return TimerError.NoError;
         }
+
+        public void InitializeTargetFrameWatcher()
+        {
+            if (!File.Exists(TargetFrameFile))
+            {
+                return;
+            }
+
+            TargetFrameWatcher = new FileSystemWatcher
+            {
+                Path = TargetFrameFolder,
+                Filter = "frame.json",
+                NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size
+            };
+
+            TargetFrameWatcher.Changed += OnTargetIGTFileChanged;
+            TargetFrameWatcher.EnableRaisingEvents = true;
+        }
+
+        private void OnTargetIGTFileChanged(object sender, FileSystemEventArgs e)
+        {
+            if (Tab.InvokeRequired)
+            {
+                Tab.Invoke(new Action(() => OnTargetIGTFileChanged(sender, e)));
+                return;
+            }
+
+            lock (timerLock)
+            {
+                try
+                {
+                    string json = File.ReadAllText(TargetFrameFile);
+                    var targetFrameContent =  JsonConvert.DeserializeObject<TargetFrameInfo>(json);
+                    FlowTimer.AudioContext.ClearQueuedAudio();
+
+                    Submitted = false;
+                    CurrentOffset = double.MaxValue;
+                    Adjusted = 0;
+
+                    FlowTimer.MainForm.TextBoxFrame.Text = targetFrameContent.Frame.ToString();
+
+                    OnDataChange();
+                    Submit();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error reading frame file: {ex.Message}");
+                }
+            }
+        }
+        
+        public void DisposeWatcher() {
+            if (TargetFrameWatcher != null) {
+                TargetFrameWatcher.EnableRaisingEvents = false;
+                TargetFrameWatcher.Dispose();
+            }
+        }
+
     }
 }
