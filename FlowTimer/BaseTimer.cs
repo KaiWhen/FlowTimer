@@ -9,6 +9,7 @@ namespace FlowTimer {
         public TabPage Tab;
         public TimerUpdateCallback TimerCallback;
         public Control[] ControlsToCopy;
+        public virtual double RetTime => 0.0;
 
         public bool Selected {
             get { return FlowTimer.MainForm.TabControl.SelectedTab == Tab; }

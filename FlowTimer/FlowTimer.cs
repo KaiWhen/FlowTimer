@@ -237,19 +237,15 @@ namespace FlowTimer {
             MainForm.PictureBoxPin.Image = PinSheet[pin ? 1 : 0];
         }
 
-        public static void UpdatePCM(List<double> offsets, uint interval, uint numBeeps, bool garbageCollect = true) {
+        public static void AllocatePCM(double maxOffsetMs, bool garbageCollect = true) {
             // try to force garbage collection on the old pcm data
             if(garbageCollect) GC.Collect();
-            double maxOffset = offsets.Max();
+            PCM = new byte[((int) Math.Ceiling(maxOffsetMs / 1000.0 * AudioContext.SampleRate)) * AudioContext.NumChannels * AudioContext.BytesPerSample + BeepSound.Length];
+        }
 
-            PCM = new byte[((int) Math.Ceiling(maxOffset / 1000.0 * AudioContext.SampleRate)) * AudioContext.NumChannels * AudioContext.BytesPerSample + BeepSound.Length];
-
-            foreach(double offset in offsets) {
-                for(int i = 0; i < numBeeps; i++) {
-                    int destOffset = (int) ((offset - i * interval) / 1000.0 * AudioContext.SampleRate) * AudioContext.NumChannels * 2;
-                    Array.Copy(BeepSound, 0, PCM, destOffset, BeepSound.Length);
-                }
-            }
+        public static void UpdatePCM(List<double> offsets, uint interval, uint numBeeps, bool garbageCollect = true) {
+            AllocatePCM(offsets.Max(), garbageCollect);
+            UpdatePCMCustom(offsets, interval, numBeeps, BeepSound);
         }
 
         public static void UpdatePCMCustom(List<double> offsets, uint interval, uint numBeeps, byte[] beep)
@@ -306,20 +302,22 @@ namespace FlowTimer {
         private static void TimerUpdateCallback() {
             Thread.CurrentThread.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
             Thread.CurrentThread.CurrentUICulture = System.Globalization.CultureInfo.InvariantCulture;
-            const uint resolution = 15;
+            const int resolution = 50;
 
             MethodInvoker inv;
             double currentTime = 0.0f;
+            double retTime = 0.0;
 
             do {
                 inv = delegate {
                     currentTime = CurrentTab.TimerCallback(TimerStart);
+                    retTime = CurrentTab.RetTime;
                     MainForm.LabelTimer.Text = currentTime.ToFormattedString();
                 };
                 MainForm.Invoke(inv);
 
-                SDL_Delay(resolution);
-            } while(currentTime > -100.0);
+                Thread.Sleep(resolution);
+            } while(currentTime > retTime);
 
             inv = delegate {
                 StopTimer(true);

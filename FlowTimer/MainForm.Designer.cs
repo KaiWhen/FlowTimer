@@ -69,6 +69,10 @@
             this.LabelFrame3 = new System.Windows.Forms.Label();
             this.LabelSecFail = new System.Windows.Forms.Label();
             this.CheckBoxGlobalHotkeys = new System.Windows.Forms.CheckBox();
+            this.ButtonAddFrameNext = new System.Windows.Forms.Button();
+            this.ButtonAddFrameAll = new System.Windows.Forms.Button();
+            this.ButtonSubFrameNext = new System.Windows.Forms.Button();
+            this.ButtonSubFrameAll = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.PictureBoxPin)).BeginInit();
             this.TabControl.SuspendLayout();
             this.TabPageFixedOffset.SuspendLayout();
@@ -118,6 +122,50 @@
             this.ButtonAdd.Text = "Add";
             this.ButtonAdd.UseVisualStyleBackColor = true;
             this.ButtonAdd.Click += new System.EventHandler(this.ButtonAdd_Click);
+            // 
+            // ButtonSubFrameNext
+            // 
+            this.ButtonSubFrameNext.Location = new System.Drawing.Point(0, 0);
+            this.ButtonSubFrameNext.Name = "ButtonSubFrameNext";
+            this.ButtonSubFrameNext.Size = new System.Drawing.Size(23, 23);
+            this.ButtonSubFrameNext.TabIndex = 40;
+            this.ButtonSubFrameNext.TabStop = false;
+            this.ButtonSubFrameNext.Text = "-";
+            this.ButtonSubFrameNext.UseVisualStyleBackColor = true;
+            this.ButtonSubFrameNext.Click += new System.EventHandler(this.ButtonSubFrameNext_Click);
+            // 
+            // ButtonAddFrameNext
+            // 
+            this.ButtonAddFrameNext.Location = new System.Drawing.Point(0, 0);
+            this.ButtonAddFrameNext.Name = "ButtonAddFrameNext";
+            this.ButtonAddFrameNext.Size = new System.Drawing.Size(23, 23);
+            this.ButtonAddFrameNext.TabIndex = 41;
+            this.ButtonAddFrameNext.TabStop = false;
+            this.ButtonAddFrameNext.Text = "+";
+            this.ButtonAddFrameNext.UseVisualStyleBackColor = true;
+            this.ButtonAddFrameNext.Click += new System.EventHandler(this.ButtonAddFrameNext_Click);
+            // 
+            // ButtonSubFrameAll
+            // 
+            this.ButtonSubFrameAll.Location = new System.Drawing.Point(0, 0);
+            this.ButtonSubFrameAll.Name = "ButtonSubFrameAll";
+            this.ButtonSubFrameAll.Size = new System.Drawing.Size(35, 23);
+            this.ButtonSubFrameAll.TabIndex = 42;
+            this.ButtonSubFrameAll.TabStop = false;
+            this.ButtonSubFrameAll.Text = "- All";
+            this.ButtonSubFrameAll.UseVisualStyleBackColor = true;
+            this.ButtonSubFrameAll.Click += new System.EventHandler(this.ButtonSubFrameAll_Click);
+            // 
+            // ButtonAddFrameAll
+            // 
+            this.ButtonAddFrameAll.Location = new System.Drawing.Point(0, 0);
+            this.ButtonAddFrameAll.Name = "ButtonAddFrameAll";
+            this.ButtonAddFrameAll.Size = new System.Drawing.Size(35, 23);
+            this.ButtonAddFrameAll.TabIndex = 43;
+            this.ButtonAddFrameAll.TabStop = false;
+            this.ButtonAddFrameAll.Text = "+ All";
+            this.ButtonAddFrameAll.UseVisualStyleBackColor = true;
+            this.ButtonAddFrameAll.Click += new System.EventHandler(this.ButtonAddFrameAll_Click);
             // 
             // ButtonSettings
             // 
@@ -212,6 +260,10 @@
             // 
             this.TabPageFixedOffset.BackColor = System.Drawing.SystemColors.Control;
             this.TabPageFixedOffset.Controls.Add(this.ButtonAdd);
+            this.TabPageFixedOffset.Controls.Add(this.ButtonAddFrameNext);
+            this.TabPageFixedOffset.Controls.Add(this.ButtonSubFrameNext);
+            this.TabPageFixedOffset.Controls.Add(this.ButtonAddFrameAll);
+            this.TabPageFixedOffset.Controls.Add(this.ButtonSubFrameAll);
             this.TabPageFixedOffset.Controls.Add(this.LabelTimer);
             this.TabPageFixedOffset.Controls.Add(this.PictureBoxPin);
             this.TabPageFixedOffset.Controls.Add(this.LabelBeeps);
@@ -407,7 +459,6 @@
             this.TabPageIGTTracking.Controls.Add(this.LabelName3);
             this.TabPageIGTTracking.Controls.Add(this.LabelFrame3);
             this.TabPageIGTTracking.Controls.Add(this.LabelSecFail);
-            // this.TabPageIGTTracking.Controls.Add(this.CheckBoxGlobalHotkeys);
             this.TabPageIGTTracking.Location = new System.Drawing.Point(4, 22);
             this.TabPageIGTTracking.Name = "TabPageIGTTracking";
             this.TabPageIGTTracking.Padding = new System.Windows.Forms.Padding(3);
@@ -652,5 +703,9 @@
         public System.Windows.Forms.Label LabelGame;
         public System.Windows.Forms.Label LabelSecFail;
         public System.Windows.Forms.CheckBox CheckBoxGlobalHotkeys;
+        public System.Windows.Forms.Button ButtonAddFrameNext;
+        public System.Windows.Forms.Button ButtonSubFrameNext;
+        public System.Windows.Forms.Button ButtonAddFrameAll;
+        public System.Windows.Forms.Button ButtonSubFrameAll;
     }
 }

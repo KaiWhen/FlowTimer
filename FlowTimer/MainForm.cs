@@ -41,6 +41,22 @@ namespace FlowTimer {
             FlowTimer.FixedOffset.OpenSaveTimersDialog();
         }
 
+        private void ButtonAddFrameNext_Click(object sender, EventArgs e) {
+            FlowTimer.FixedOffset.ShiftNextOffset(1, 16.75);
+        }
+
+        private void ButtonSubFrameNext_Click(object sender, EventArgs e) {
+            FlowTimer.FixedOffset.ShiftNextOffset(-1, 16.75);
+        }
+
+        private void ButtonAddFrameAll_Click(object sender, EventArgs e) {
+            FlowTimer.FixedOffset.ShiftFutureOffsets(1, 16.75);
+        }
+
+        private void ButtonSubFrameAll_Click(object sender, EventArgs e) {
+            FlowTimer.FixedOffset.ShiftFutureOffsets(-1, 16.75);
+        }
+
         private void PictureBoxPin_Click(object sender, EventArgs e) {
             FlowTimer.TogglePin();
         }
