@@ -669,7 +669,7 @@ namespace FlowTimer {
             }
         }
 
-         public IGTTimer(int index, string name = "Timer", string frame = "0", string offset = "0", string interval = "250", string numBeeps = "3", string secFails = "") {
+        public IGTTimer(int index, string name = "Timer", string frame = "0", string offset = "0", string interval = "250", string numBeeps = "3", string secFails = "") {
             Controls = new List<Control>();
 
             TextBoxName = new TextBox();
@@ -755,8 +755,7 @@ namespace FlowTimer {
                 return TimerError.InvalidNumBeeps;
             }
 
-             if (TextBoxSecFail.Text != "")
-            {
+            if (TextBoxSecFail.Text != "") {
                 string[] secsStr = TextBoxSecFail.Text.Split('/');
                 uint[] secs = new uint[secsStr.Length];
 

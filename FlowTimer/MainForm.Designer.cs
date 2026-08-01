@@ -122,7 +122,9 @@
             this.ButtonAdd.Text = "Add";
             this.ButtonAdd.UseVisualStyleBackColor = true;
             this.ButtonAdd.Click += new System.EventHandler(this.ButtonAdd_Click);
-
+            // 
+            // ButtonSubFrameNext
+            // 
             this.ButtonSubFrameNext.Location = new System.Drawing.Point(0, 0);
             this.ButtonSubFrameNext.Name = "ButtonSubFrameNext";
             this.ButtonSubFrameNext.Size = new System.Drawing.Size(23, 23);
@@ -131,7 +133,9 @@
             this.ButtonSubFrameNext.Text = "-";
             this.ButtonSubFrameNext.UseVisualStyleBackColor = true;
             this.ButtonSubFrameNext.Click += new System.EventHandler(this.ButtonSubFrameNext_Click);
-
+            // 
+            // ButtonAddFrameNext
+            // 
             this.ButtonAddFrameNext.Location = new System.Drawing.Point(0, 0);
             this.ButtonAddFrameNext.Name = "ButtonAddFrameNext";
             this.ButtonAddFrameNext.Size = new System.Drawing.Size(23, 23);
@@ -140,7 +144,9 @@
             this.ButtonAddFrameNext.Text = "+";
             this.ButtonAddFrameNext.UseVisualStyleBackColor = true;
             this.ButtonAddFrameNext.Click += new System.EventHandler(this.ButtonAddFrameNext_Click);
-
+            // 
+            // ButtonSubFrameAll
+            // 
             this.ButtonSubFrameAll.Location = new System.Drawing.Point(0, 0);
             this.ButtonSubFrameAll.Name = "ButtonSubFrameAll";
             this.ButtonSubFrameAll.Size = new System.Drawing.Size(35, 23);
@@ -149,7 +155,9 @@
             this.ButtonSubFrameAll.Text = "- All";
             this.ButtonSubFrameAll.UseVisualStyleBackColor = true;
             this.ButtonSubFrameAll.Click += new System.EventHandler(this.ButtonSubFrameAll_Click);
-
+            // 
+            // ButtonAddFrameAll
+            // 
             this.ButtonAddFrameAll.Location = new System.Drawing.Point(0, 0);
             this.ButtonAddFrameAll.Name = "ButtonAddFrameAll";
             this.ButtonAddFrameAll.Size = new System.Drawing.Size(35, 23);
